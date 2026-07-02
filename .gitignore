@@ -1,0 +1,20 @@
+# Arquivos gerados localmente — NÃO versionar
+
+# Saídas do pipeline
+output/
+
+# Músicas de fundo (baixadas automaticamente)
+data/bg_music*.mp3
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Credenciais — NUNCA versionar!
+.env
+*.json
+!data/perguntas_usadas.json
+
+# Logs
+*.log

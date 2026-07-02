@@ -1,0 +1,18 @@
+# Dependências Python — Canal Quiz Shorts
+
+# IA — geração de texto e transcrição de áudio
+groq>=0.9.0
+
+# TTS — síntese de voz masculina (pt-BR-AntonioNeural)
+edge-tts>=6.1.9
+
+# HTTP — download de imagens, músicas e vídeos
+requests>=2.31.0
+
+# Variáveis de ambiente locais
+python-dotenv>=1.0.0
+
+# YouTube Data API v3
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
