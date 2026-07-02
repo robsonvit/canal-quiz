@@ -43,14 +43,16 @@ def main():
 
     print("\n🔐 ABRINDO NAVEGADOR PARA AUTENTICAÇÃO...")
     print("Por favor, faça login com a conta robsonalemanha2025@gmail.com")
-    print("e conceda permissão para gerenciar seus vídeos do YouTube.\n")
+    print("1. Escolha a conta de e-mail robsonalemanha2025@gmail.com")
+    print("2. IMPORTANTE: Na tela seguinte, você DEVE selecionar o CANAL RVS.")
+    print("   Se você não selecionar o canal específico, ele usará o canal padrão (Oração).\n")
 
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_config(
         client_config, SCOPES
     )
     
-    # Executa o servidor local para pegar o token
-    creds = flow.run_local_server(port=0)
+    # Executa o servidor local forçando a tela de seleção de conta e permissão
+    creds = flow.run_local_server(port=0, prompt='consent select_account')
 
     print("\n✅ SUCESSO! Cópia do Refresh Token abaixo:\n")
     print("═"*60)

@@ -149,10 +149,12 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str]:
     os.makedirs(output_dir, exist_ok=True)
 
     audio_pergunta_path = os.path.join(output_dir, "audio_pergunta.mp3")
+    audio_cta_path      = os.path.join(output_dir, "audio_cta.mp3")
     audio_resposta_path = os.path.join(output_dir, "audio_resposta.mp3")
     srt_path            = os.path.join(output_dir, "legendas.srt")
 
     texto_pergunta = dados_quiz["pergunta_texto"]
+    texto_cta      = "Vou te dar dez segundos para escrever sua resposta nos comentários e me seguir."
     texto_resposta = dados_quiz["resposta_texto"] + " " + dados_quiz["curiosidade_texto"]
 
     # ── Passo 1: Sintetizar áudios ────────────────────────────────────────────
@@ -160,40 +162,58 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str]:
     asyncio.run(_sintetizar(texto_pergunta, audio_pergunta_path))
     print(f"✅ Áudio pergunta: {audio_pergunta_path}")
 
+    print("🎙️  Sintetizando áudio do CTA com edge-tts...")
+    asyncio.run(_sintetizar(texto_cta, audio_cta_path))
+    print(f"✅ Áudio CTA: {audio_cta_path}")
+
     print("🎙️  Sintetizando áudio da RESPOSTA com edge-tts...")
     asyncio.run(_sintetizar(texto_resposta, audio_resposta_path))
     print(f"✅ Áudio resposta: {audio_resposta_path}")
 
     # ── Passo 2: Calcular offset de tempo ─────────────────────────────────────
     duracao_pergunta = _duracao_mp3(audio_pergunta_path)
-    COUNTDOWN_DURACAO = 3.0  # segundos de silêncio/countdown
-    offset_resposta = duracao_pergunta + COUNTDOWN_DURACAO
+    duracao_cta      = _duracao_mp3(audio_cta_path)
+    COUNTDOWN_DURACAO = 10.0  # segundos de silêncio/countdown
+
+    offset_cta = duracao_pergunta
+    offset_resposta = duracao_pergunta + duracao_cta + COUNTDOWN_DURACAO
 
     print(f"⏱️  Duração da pergunta : {duracao_pergunta:.1f}s")
-    print(f"⏱️  Offset da resposta  : {offset_resposta:.1f}s (pergunta + 3s countdown)")
+    print(f"⏱️  Duração do CTA      : {duracao_cta:.1f}s")
+    print(f"⏱️  Offset da resposta  : {offset_resposta:.1f}s (pergunta + CTA + 10s countdown)")
 
     # ── Passo 3: Gerar legendas SRT unificado ─────────────────────────────────
     print("📝 Transcrevendo PERGUNTA com Groq Whisper...")
     linhas_pergunta = _transcrever_para_srt(audio_pergunta_path, offset_segundos=0.0)
 
+    print("📝 Transcrevendo CTA com Groq Whisper...")
+    linhas_cta = _transcrever_para_srt(audio_cta_path, offset_segundos=offset_cta)
+
     print("📝 Transcrevendo RESPOSTA com Groq Whisper...")
     linhas_resposta = _transcrever_para_srt(audio_resposta_path, offset_segundos=offset_resposta)
 
-    # Renumerar as linhas da resposta para continuar a numeração
+    # Renumerar as linhas
     idx_base = len(linhas_pergunta) + 1
+    linhas_cta_renumeradas = []
+    for idx_rel, bloco in enumerate(linhas_cta):
+        linhas = bloco.split("\n")
+        linhas[0] = str(idx_base + idx_rel)
+        linhas_cta_renumeradas.append("\n".join(linhas))
+
+    idx_base += len(linhas_cta)
     linhas_resposta_renumeradas = []
     for idx_rel, bloco in enumerate(linhas_resposta):
         linhas = bloco.split("\n")
-        linhas[0] = str(idx_base + idx_rel)  # Corrige índice SRT
+        linhas[0] = str(idx_base + idx_rel)
         linhas_resposta_renumeradas.append("\n".join(linhas))
 
-    srt_content = "\n".join(linhas_pergunta + linhas_resposta_renumeradas)
+    srt_content = "\n".join(linhas_pergunta + linhas_cta_renumeradas + linhas_resposta_renumeradas)
 
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)
 
     print(f"✅ Legendas SRT unificadas: {srt_path}")
-    return audio_pergunta_path, audio_resposta_path, srt_path
+    return audio_pergunta_path, audio_cta_path, audio_resposta_path, srt_path
 
 
 if __name__ == "__main__":

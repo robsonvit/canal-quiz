@@ -67,12 +67,12 @@ def main():
     _titulo(2, 5, "Gerando áudio TTS (pt-BR-AntonioNeural) + legendas Groq Whisper...")
     from scripts.gerar_audio import gerar as gerar_audio
 
-    audio_pergunta, audio_resposta, srt_path = gerar_audio(dados, OUTPUT_DIR)
+    audio_pergunta, audio_cta, audio_resposta, srt_path = gerar_audio(dados, OUTPUT_DIR)
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 3 — Buscar vídeo da resposta no Pexels
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(3, 5, "Buscando vídeo para a resposta no Pexels...")
+    _titulo(3, 5, "Buscando vídeos para a resposta no Pexels...")
     from scripts.buscar_midia import buscar_midias
 
     video_resposta = buscar_midias(
@@ -80,22 +80,23 @@ def main():
         termos_pergunta=dados.get("termos_imagem_pergunta", ["curiosity", "question"]),
         output_dir=OUTPUT_DIR,
     )
-    print(f"✅ Vídeo resposta: {video_resposta}")
+    print(f"✅ Vídeos de resposta concatenados: {video_resposta}")
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 4 — Montar Short 1080×1920 com 3 atos
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(4, 5, "Montando Short 1080×1920 (Cor Sólida → Countdown 3s → Vídeo)...")
+    _titulo(4, 5, "Montando Short 1080×1920 (Cor Sólida → Countdown 10s → Vídeo)...")
     from scripts.montar_video import montar_video
 
     video_final = montar_video(
         video_resposta = video_resposta,
         audio_pergunta = audio_pergunta,
+        audio_cta      = audio_cta,
         audio_resposta = audio_resposta,
         legendas_srt   = srt_path,
         output_dir     = OUTPUT_DIR,
         resposta_curta = dados.get("resposta_texto", "")[:60],
-        countdown_s    = 3.0,
+        countdown_s    = 10.0,
     )
 
     # ──────────────────────────────────────────────────────────────────────────
