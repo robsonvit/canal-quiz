@@ -18,6 +18,9 @@ import os
 import sys
 import json
 import traceback
+from dotenv import load_dotenv
+
+load_dotenv()
 
 ROOT_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
@@ -67,28 +70,26 @@ def main():
     audio_pergunta, audio_resposta, srt_path = gerar_audio(dados, OUTPUT_DIR)
 
     # ──────────────────────────────────────────────────────────────────────────
-    # PASSO 3 — Buscar imagens no Pexels
+    # PASSO 3 — Buscar vídeo da resposta no Pexels
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(3, 5, "Buscando imagens relacionadas no Pexels...")
-    from scripts.buscar_imagem import buscar_imagens
+    _titulo(3, 5, "Buscando vídeo para a resposta no Pexels...")
+    from scripts.buscar_midia import buscar_midias
 
-    img_pergunta, img_resposta = buscar_imagens(
-        termos_pergunta=dados.get("termos_imagem_pergunta", ["curiosity", "question"]),
+    video_resposta = buscar_midias(
         termos_resposta=dados.get("termos_imagem_resposta", ["answer", "science"]),
+        termos_pergunta=dados.get("termos_imagem_pergunta", ["curiosity", "question"]),
         output_dir=OUTPUT_DIR,
     )
-    print(f"✅ Imagem pergunta: {img_pergunta}")
-    print(f"✅ Imagem resposta: {img_resposta}")
+    print(f"✅ Vídeo resposta: {video_resposta}")
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 4 — Montar Short 1080×1920 com 3 atos
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(4, 5, "Montando Short 1080×1920 (Pergunta → Countdown 3s → Resposta)...")
+    _titulo(4, 5, "Montando Short 1080×1920 (Cor Sólida → Countdown 3s → Vídeo)...")
     from scripts.montar_video import montar_video
 
     video_final = montar_video(
-        img_pergunta   = img_pergunta,
-        img_resposta   = img_resposta,
+        video_resposta = video_resposta,
         audio_pergunta = audio_pergunta,
         audio_resposta = audio_resposta,
         legendas_srt   = srt_path,

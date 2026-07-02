@@ -111,10 +111,10 @@ Crie UMA pergunta curiosa e surpreendente sobre o tema: **{tema}**.
 FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 
 {{
-  "pergunta_texto": "Texto da pergunta narrada em voz alta. Deve começar com 'Você sabia que...' OU 'Qual o único...' OU 'Por que...' OU 'O que acontece quando...' — no máximo 2 frases. Termine com '...você tem 3 segundos para responder!'",
+  "pergunta_texto": "Texto da pergunta. DEVE SER EXTREMAMENTE CURTA E DIRETA (MÁXIMO 10-15 PALAVRAS). Vá direto ao ponto, por exemplo: 'Qual o animal mais venenoso do mundo?' ou 'Qual planeta tem chova de diamantes?'. Não use introduções longas como 'Você sabia...'. Termine com '...você tem 3 segundos para responder!'",
   "resposta_texto": "Resposta direta e clara, 1 frase curta e impactante.",
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom científico mas acessível.",
-  "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles", "termo3_ingles"],
+  "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
   "termos_imagem_resposta": ["termo1_ingles", "termo2_ingles"],
   "titulo": "Emoji + título curto para Short (máx 80 chars) com #Shorts no final",
   "descricao": "Descrição de até 300 chars para o YouTube com a pergunta e resposta resumidas. Use emojis. Inclua #Shorts #Quiz #Curiosidades",
@@ -122,7 +122,7 @@ FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 }}
 
 REGRAS:
-- A pergunta deve ser genuinamente surpreendente — algo que a maioria das pessoas não sabe
+- A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 15 palavras).
 - A resposta deve ser verificável e factualmente correta
 - Os termos de imagem devem ser em INGLÊS para busca no Pexels
 - Tom: animado, direto, engajante

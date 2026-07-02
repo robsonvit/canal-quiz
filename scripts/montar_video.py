@@ -4,19 +4,19 @@ montar_video.py
 Monta o Short final 1080×1920 (9:16) para o YouTube no formato Quiz:
 
   ATO 1 — PERGUNTA (~5-8s)
-    • Imagem relacionada à pergunta (portrait)
+    • Fundo de cor sólida dinâmica (sem imagem)
     • Áudio TTS da pergunta
     • Legendas na tela (amarelo neon, parte inferior)
     • Overlay "❓ DESAFIO RÁPIDO" no topo
 
   ATO 2 — COUNTDOWN (3s)
-    • Mesma imagem da pergunta com overlay escurecido
-    • Números 3 → 2 → 1 centralizados, animados (escala pulsante via drawtext)
+    • Fundo sólido continua, com overlay escurecido
+    • Números 3 → 2 → 1 centralizados, animados
     • Texto "Você sabe a resposta?" acima do número
     • Música de suspense (volume alto)
 
   ATO 3 — RESPOSTA (~8-12s)
-    • Imagem relacionada à resposta
+    • Vídeo vertical relacionado à resposta (do Pexels) em loop
     • Áudio TTS da resposta + curiosidade
     • Legendas na tela
     • Overlay "✅ RESPOSTA:" no topo com a resposta curta em caixa colorida
@@ -134,8 +134,7 @@ def _baixar_musica_fallback(dest: str):
 # Montagem principal
 # ─────────────────────────────────────────────────────────────────────────────
 def montar_video(
-    img_pergunta: str,
-    img_resposta: str,
+    video_resposta: str,
     audio_pergunta: str,
     audio_resposta: str,
     legendas_srt: str,
@@ -145,9 +144,9 @@ def montar_video(
 ) -> str:
     """
     Monta o Short de Quiz com 3 atos:
-      Ato 1: Imagem pergunta + áudio pergunta
-      Ato 2: Countdown 3s (overlay animado)
-      Ato 3: Imagem resposta + áudio resposta
+      Ato 1: Fundo de cor sólida + áudio pergunta
+      Ato 2: Fundo de cor sólida + Countdown 3s
+      Ato 3: Vídeo resposta + áudio resposta
 
     Retorna o caminho do vídeo final.
     """
@@ -160,6 +159,7 @@ def montar_video(
     dur_pergunta = _duracao_audio(audio_pergunta)
     dur_resposta = _duracao_audio(audio_resposta)
     dur_total    = dur_pergunta + countdown_s + dur_resposta
+    dur_ato1     = dur_pergunta + countdown_s
 
     print(f"⏱️  Duração: pergunta={dur_pergunta:.1f}s | countdown={countdown_s:.0f}s | resposta={dur_resposta:.1f}s | total={dur_total:.1f}s")
 
@@ -197,44 +197,44 @@ def montar_video(
 
     resposta_esc = _escape_drawtext(resposta_curta[:50] if resposta_curta else "")
 
-    # ── Filter complex ────────────────────────────────────────────────────────
-    # Inputs: [0]=img_pergunta [1]=img_resposta [2]=audio_final [3]=musica_bg
+    # ── Criar vídeo visual (concatenando Ato 1 e Ato 3) ──────────────────────
+    print("🎨 Gerando fundo de cor sólida para a pergunta...")
+    bg_color_vid = os.path.join(output_dir, "bg_color.mp4")
+    # Gerar cor #1b263b (Dark Blue)
+    cmd_color = [
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", f"color=c=#1b263b:s=1080x1920:d={dur_ato1}",
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
+        bg_color_vid,
+    ]
+    subprocess.run(cmd_color, capture_output=True, check=True)
 
-    img_p_abs = os.path.abspath(img_pergunta).replace("\\", "/")
-    img_r_abs = os.path.abspath(img_resposta).replace("\\", "/")
+    print("🎬 Processando e cortando o vídeo da resposta...")
+    video_resp_loop = os.path.join(output_dir, "vid_r_loop.mp4")
+    # Usa stream_loop no vídeo da resposta e garante a duração exata do Ato 3
+    cmd_resp_loop = [
+        "ffmpeg", "-y",
+        "-stream_loop", "-1",
+        "-i", video_resposta,
+        "-t", str(dur_resposta),
+        "-vf", "fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
+        video_resp_loop,
+    ]
+    subprocess.run(cmd_resp_loop, capture_output=True, check=True)
 
-    # Cria loop de imagem pergunta (duração pergunta + countdown)
-    dur_ato1 = dur_pergunta + countdown_s
-    dur_ato3 = dur_resposta
-
-    # Loop das imagens para a duração correta
-    img_p_loop = os.path.join(output_dir, "img_p_loop.mp4")
-    img_r_loop = os.path.join(output_dir, "img_r_loop.mp4")
-
-    for img_in, img_out, dur in [
-        (img_pergunta, img_p_loop, dur_ato1),
-        (img_resposta, img_r_loop, dur_ato3),
-    ]:
-        cmd_loop = [
-            "ffmpeg", "-y",
-            "-loop", "1",
-            "-i", img_in,
-            "-t", str(dur),
-            "-vf", "fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-pix_fmt", "yuv420p",
-            img_out,
-        ]
-        res = subprocess.run(cmd_loop, capture_output=True, text=True)
-        if res.returncode != 0:
-            raise RuntimeError(f"FFmpeg falhou ao criar loop de imagem:\n{res.stderr[-500:]}")
-
-    # Concatenar os dois loops de imagem
+    print("✂️  Concatenando partes visuais...")
     lista_video = os.path.join(output_dir, "video_concat.txt")
     with open(lista_video, "w") as f:
-        f.write(f"file '{os.path.abspath(img_p_loop).replace(chr(92), '/')}'\n")
-        f.write(f"file '{os.path.abspath(img_r_loop).replace(chr(92), '/')}'\n")
+        f.write(f"file '{os.path.abspath(bg_color_vid).replace(chr(92), '/')}'\n")
+        f.write(f"file '{os.path.abspath(video_resp_loop).replace(chr(92), '/')}'\n")
 
     video_raw = os.path.join(output_dir, "video_raw.mp4")
     cmd_concat_video = [
@@ -244,15 +244,9 @@ def montar_video(
         "-c", "copy",
         video_raw,
     ]
-    res = subprocess.run(cmd_concat_video, capture_output=True, text=True)
-    if res.returncode != 0:
-        raise RuntimeError(f"Falha ao concatenar vídeos:\n{res.stderr[-500:]}")
+    subprocess.run(cmd_concat_video, capture_output=True, check=True)
 
     # ── Ato 2: Overlay do countdown + overlays de texto ──────────────────────
-    # Texto "❓ DESAFIO RÁPIDO" no topo (Ato 1)
-    # Números 3→2→1 centralizados (Ato 2)
-    # "✅ RESPOSTA:" no topo (Ato 3)
-
     filtros_drawtext = [
         # TOPO - Ato 1: Label "❓ DESAFIO RÁPIDO"
         (
@@ -345,7 +339,7 @@ def montar_video(
         raise RuntimeError(f"FFmpeg falhou na montagem final:\n{resultado.stderr[-1200:]}")
 
     # Limpar temporários
-    for tmp in [img_p_loop, img_r_loop, video_raw, lista_video, audio_final]:
+    for tmp in [bg_color_vid, video_resp_loop, video_raw, lista_video, audio_final]:
         if os.path.exists(tmp):
             os.remove(tmp)
 
