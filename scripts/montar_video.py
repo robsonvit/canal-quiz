@@ -264,10 +264,8 @@ def montar_video(
         ),
         # Overlay escuro no Ato 2 (countdown)
         (
-            "drawbox"
+            "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill"
             f":enable='between(t,{t0:.2f},{t3:.2f})'"
-            ":x=0:y=0:w=iw:h=ih"
-            ":color=black@0.5:t=fill"
         ),
         # Número 3
         (
@@ -306,7 +304,7 @@ def montar_video(
             "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
             ":text='RESPOSTA'"
             ":fontsize=50:fontcolor=black:bordercolor=white:borderw=2"
-            ":box=1:boxcolor=0x00FF00@0.9:boxborderw=15"
+            ":box=1:boxcolor=green@0.9:boxborderw=15"
             ":x=(W-text_w)/2:y=80"
             f":enable='gte(t,{t3:.2f})'"
         ),
