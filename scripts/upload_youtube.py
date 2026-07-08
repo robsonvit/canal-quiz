@@ -87,9 +87,14 @@ def upload_youtube(
     # Remove o trecho de countdown do final da pergunta para usar no SEO
     pergunta_seo = pergunta.replace("...você tem 3 segundos para responder!", "").strip().rstrip(".")
 
+    # 1. Garante o Título do Vídeo
+    if pergunta_seo and pergunta_seo.lower() not in titulo.lower():
+        titulo = f"🧠 {pergunta_seo} #Shorts"[:100]
+
+    # 2. Garante a Descrição
     if pergunta_seo and not descricao_raw.startswith(pergunta_seo[:30]):
-        # A IA não colocou a pergunta no início — constrói manualmente
-        descricao = f"{pergunta_seo}\n\n✅ Resposta: {resposta}\n\n#Shorts #Quiz #Curiosidades #VocêSabia"
+        # A IA não colocou a pergunta no início — constrói manualmente com tags genéricas
+        descricao = f"{pergunta_seo}\n\n✅ Resposta: {resposta}\n\n#Shorts #Quiz #Curiosidades"
     else:
         descricao = descricao_raw
 

@@ -164,8 +164,8 @@ FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom acessível e envolvente.",
   "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
   "termos_imagem_resposta": ["termo1_ingles", "termo2_ingles"],
-  "titulo": "Emoji + título curto para Short (máx 80 chars) com #Shorts no final",
-  "descricao": "IMPORTANTE: A descrição DEVE COMEÇAR com a pergunta exata do vídeo (campo pergunta_texto, sem o final '...você tem 3 segundos para responder!'). Depois adicione a resposta e use emojis. Máx 400 chars. Inclua #Shorts #Quiz #Curiosidades no final.",
+  "titulo": "Emoji + A pergunta exata do vídeo (sem o countdown final) + #Shorts. Ex: '🌺 Qual flor mais venenosa do mundo? #Shorts'. Máximo 80 caracteres.",
+  "descricao": "IMPORTANTE: A descrição DEVE COMEÇAR com a pergunta exata do vídeo (sem o countdown). Depois adicione a resposta e use emojis. No final, inclua as hashtags genéricas (#Shorts #Quiz #Curiosidades) E adicione de 3 a 5 hashtags muito específicas relacionadas ao assunto do vídeo (ex: #flor #veneno #natureza). Máx 400 chars.",
   "tags": ["Shorts", "Quiz", "Curiosidades", "Você Sabia", "{tema}", "fatos curiosos", "ciência", "conhecimento", "quiz brasil", "perguntas e respostas"]
 }}
 
@@ -173,7 +173,9 @@ REGRAS:
 - A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 15 palavras).
 - A pergunta deve ser sobre o tema '{tema}' especificamente.
 - A resposta deve ser verificável e factualmente correta.
+- O TÍTULO DEVE SER A PERGUNTA (com emoji no início e #Shorts no final).
 - A DESCRIÇÃO DEVE COMEÇAR com a pergunta (sem o countdown final) — isso é crítico para SEO.
+- A DESCRIÇÃO DEVE CONTER hashtags específicas do assunto.
 - Os termos de imagem devem ser em INGLÊS para busca no Pexels.
 - Tom: animado, direto, engajante.
 - Sem markdown fora do JSON.
