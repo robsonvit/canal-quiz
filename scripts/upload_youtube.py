@@ -79,7 +79,21 @@ def upload_youtube(
 
     # ── Metadados ─────────────────────────────────────────────────────────────
     titulo    = metadata.get("titulo", "🧠 Quiz Rápido #Shorts")[:100]
-    descricao = metadata.get("descricao", "")[:500]
+    pergunta  = metadata.get("pergunta_texto", "")
+    resposta  = metadata.get("resposta_texto", "")
+    descricao_raw = metadata.get("descricao", "")
+
+    # ── SEO: Garante que a descrição começa com a pergunta ────────────────────
+    # Remove o trecho de countdown do final da pergunta para usar no SEO
+    pergunta_seo = pergunta.replace("...você tem 3 segundos para responder!", "").strip().rstrip(".")
+
+    if pergunta_seo and not descricao_raw.startswith(pergunta_seo[:30]):
+        # A IA não colocou a pergunta no início — constrói manualmente
+        descricao = f"{pergunta_seo}\n\n✅ Resposta: {resposta}\n\n#Shorts #Quiz #Curiosidades #VocêSabia"
+    else:
+        descricao = descricao_raw
+
+    descricao = descricao[:500]
     tags      = metadata.get("tags", [])
 
     # Garante tags essenciais para o algoritmo
