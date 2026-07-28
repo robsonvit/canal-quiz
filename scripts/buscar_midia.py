@@ -170,7 +170,7 @@ def buscar_midias(
     else:
         print("✂️  Concatenando vídeos de resposta...")
         lista_path = os.path.join(tmp_dir, "lista_videos.txt")
-        with open(lista_path, "w") as f:
+        with open(lista_path, "w", encoding="utf-8") as f:
             for p in videos_processados:
                 f.write(f"file '{os.path.abspath(p).replace(chr(92), '/')}'\n")
 
