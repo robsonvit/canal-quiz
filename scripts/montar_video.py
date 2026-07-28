@@ -153,8 +153,10 @@ def montar_video(
 
     import shutil
     import uuid
-    # Usar a pasta TEMP do Windows (sem acentos) para evitar o erro "Invalid argument" no FFmpeg/libass
-    temp_srt = os.path.join(os.environ.get("TEMP", "C:/Windows/Temp"), f"legendas_{uuid.uuid4().hex}.srt")
+    import tempfile
+    
+    # Criar arquivo temporário de forma segura (funciona no Windows e Linux)
+    temp_srt = os.path.join(tempfile.gettempdir(), f"legendas_{uuid.uuid4().hex}.srt")
     shutil.copy2(legendas_srt, temp_srt)
     
     # Escapar caminho absoluto para FFmpeg no Windows
