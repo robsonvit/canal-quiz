@@ -159,7 +159,7 @@ Crie UMA pergunta curiosa e surpreendente sobre o tema: **{tema}**.
 FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 
 {{
-  "pergunta_texto": "Texto da pergunta. DEVE COMEÇAR OBRIGATORIAMENTE com 'Você sabe' ou 'Você sabia que ' para criar intimidade. Vá direto ao ponto. Exemplos por tema:\n- animal: 'Você sabe qual é o animal mais venenoso do mundo?'\n- astronomia: 'Você sabia que existe um planeta com chuva de diamantes?'\n- culinária: 'Você sabe qual é o tempero mais caro do mundo?'\n- matemática: 'Você sabe qual número dividido por zero não tem resposta?'\n- raciocínio lógico: 'Você sabe que dia será daqui a 100 dias se hoje for quarta?'\n- geografia: 'Você sabe qual país tem mais idiomas oficiais do mundo?'\n- história: 'Você sabia qual civilização inventou o papel?'\n- filosofia: 'Você sabe quem disse que só sei que nada sei?'\n- física: 'Você sabe por que o céu é azul e não verde?'\n- fenômenos: 'Você sabia por que os relâmpagos caem em lugares altos?'\n- futebol: 'Você sabe qual jogador ganhou mais Copas do Mundo?'\nTermine com '...você tem 3 segundos para responder!'",
+  "pergunta_texto": "Texto da pergunta. FAÇA UMA PERGUNTA DIRETA E ABERTA, SEM USAR 'Você sabe' ou 'Você sabia que', para evitar respostas de 'sim' ou 'não'. Vá direto ao ponto. Exemplos por tema:\n- animal: 'Qual é o animal mais venenoso do mundo?'\n- astronomia: 'Qual planeta tem chuva de diamantes?'\n- culinária: 'Qual é o tempero mais caro do mundo?'\n- matemática: 'Qual número dividido por zero não tem resposta?'\n- raciocínio lógico: 'Que dia será daqui a 100 dias se hoje for quarta?'\n- geografia: 'Qual país tem mais idiomas oficiais do mundo?'\n- história: 'Qual civilização inventou o papel?'\n- filosofia: 'Quem disse que só sei que nada sei?'\n- física: 'Por que o céu é azul e não verde?'\n- fenômenos: 'Por que os relâmpagos caem em lugares altos?'\n- futebol: 'Qual jogador ganhou mais Copas do Mundo?'\nTermine com '...você tem 3 segundos para responder!'",
   "resposta_texto": "Resposta direta e clara, 1 frase curta e impactante.",
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom acessível e envolvente.",
   "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
@@ -170,7 +170,7 @@ FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 }}
 
 REGRAS:
-- A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 20 palavras) E COMEÇAR COM 'Você sabe' ou 'Você sabia que '.
+- A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 20 palavras) E ABERTA. NÃO USE 'Você sabe' ou 'Você sabia que' para evitar respostas de sim/não.
 - A pergunta deve ser sobre o tema '{tema}' especificamente.
 - A resposta deve ser verificável e factualmente correta.
 - O TÍTULO DEVE SER A PERGUNTA (com emoji no início e #Shorts no final).
