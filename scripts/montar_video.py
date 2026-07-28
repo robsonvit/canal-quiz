@@ -62,7 +62,7 @@ def _escape_drawtext(texto: str) -> str:
 
 def _concatenar_audios(audio_p: str, audio_cta: str, silencio_s: float, audio_r: str, output: str):
     """
-    Concatena Pergunta + CTA + Silêncio de 10s + Resposta
+    Concatena Pergunta + CTA + Silêncio de 10s + Resposta usando filter_complex
     """
     silencio_path = output.replace(".mp3", "_silencio.mp3")
 
@@ -77,24 +77,22 @@ def _concatenar_audios(audio_p: str, audio_cta: str, silencio_s: float, audio_r:
     ]
     subprocess.run(cmd_silencio, capture_output=True, check=True)
 
-    lista_path = output.replace(".mp3", "_concat.txt")
-    with open(lista_path, "w") as f:
-        for p in [audio_p, audio_cta, silencio_path, audio_r]:
-            f.write(f"file '{os.path.abspath(p).replace(chr(92), '/')}'\n")
-
     cmd_concat = [
         "ffmpeg", "-y",
-        "-f", "concat", "-safe", "0",
-        "-i", lista_path,
+        "-i", audio_p,
+        "-i", audio_cta,
+        "-i", silencio_path,
+        "-i", audio_r,
+        "-filter_complex", "[0:a][1:a][2:a][3:a]concat=n=4:v=0:a=1[aout]",
+        "-map", "[aout]",
         "-c:a", "libmp3lame",
         "-b:a", "128k",
         output,
     ]
     subprocess.run(cmd_concat, capture_output=True, check=True)
 
-    for f in [silencio_path, lista_path]:
-        if os.path.exists(f):
-            os.remove(f)
+    if os.path.exists(silencio_path):
+        os.remove(silencio_path)
 
 
 def _baixar_musica_quiz(dest: str):
@@ -207,7 +205,7 @@ def montar_video(
 
     print("✂️  Concatenando partes visuais...")
     lista_video = os.path.join(output_dir, "video_concat.txt")
-    with open(lista_video, "w") as f:
+    with open(lista_video, "w", encoding="utf-8") as f:
         f.write(f"file '{os.path.abspath(bg_color_vid).replace(chr(92), '/')}'\n")
         f.write(f"file '{os.path.abspath(video_resp_loop).replace(chr(92), '/')}'\n")
 
