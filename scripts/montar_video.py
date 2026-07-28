@@ -220,7 +220,6 @@ def montar_video(
     subprocess.run(cmd_concat_video, capture_output=True, check=True)
 
     # Fonte baseada no SO
-    import os
     if os.name == "nt":
         font_path = "C\\\\:/Windows/Fonts/arialbd.ttf"
     else:
