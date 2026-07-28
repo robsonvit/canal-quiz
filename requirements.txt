@@ -3,8 +3,10 @@
 # IA — geração de texto e transcrição de áudio
 groq>=0.9.0
 
-# TTS — síntese de voz masculina (pt-BR-AntonioNeural)
-edge-tts>=6.1.9
+# TTS — síntese de voz (Kokoro TTS)
+kokoro>=0.2.0
+soundfile>=0.12.1
+numpy>=1.26.0
 
 # HTTP — download de imagens, músicas e vídeos
 requests>=2.31.0

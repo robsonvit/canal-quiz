@@ -1,14 +1,11 @@
 """
 gerar_audio.py
 ──────────────
-Gera áudio MP3 com voz grave masculina (pt-BR-AntonioNeural) via edge-tts
+Gera áudio WAV com voz feminina (pf_dora) via Kokoro TTS
 para o Short de Quiz e produz arquivo SRT de legendas via Groq Whisper.
 
-O áudio é gerado em 2 partes separadas:
-  - Parte 1: Texto da PERGUNTA (narrado antes do countdown)
-  - Parte 2: Texto da RESPOSTA + CURIOSIDADE (narrado após o countdown)
-
-As legendas SRT são geradas para cada parte separadamente e concatenadas
+O áudio é gerado em 3 partes separadas (pergunta, CTA, resposta).
+As legendas SRT são geradas para cada parte e concatenadas
 com offset de tempo correto para sincronizar com o vídeo final.
 """
 
@@ -16,15 +13,14 @@ import asyncio
 import os
 import json
 
-import edge_tts
 from groq import Groq
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Configurações da voz
 # ─────────────────────────────────────────────────────────────────────────────
-VOZ                 = "pt-BR-AntonioNeural"   # Voz masculina natural do Brasil
-PALAVRAS_POR_LEGENDA = 4                       # Blocos pequenos para tela mobile
+VOZ                 = "pf_dora"   # Voz feminina do Kokoro TTS
+PALAVRAS_POR_LEGENDA = 4          # Blocos pequenos para tela mobile
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -38,8 +34,8 @@ def _segundos_para_hms(segundos: float) -> str:
     return f"{horas:02d}:{minutos:02d}:{segs:02d},{ms:03d}"
 
 
-def _duracao_mp3(audio_path: str) -> float:
-    """Obtém duração do MP3 via mutagen (fallback: subprocess ffprobe)."""
+def _duracao_wav(audio_path: str) -> float:
+    """Obtém duração do arquivo de áudio via ffprobe."""
     import subprocess, json as _json
     cmd = [
         "ffprobe", "-v", "quiet",
@@ -56,15 +52,29 @@ def _duracao_mp3(audio_path: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Geração de áudio com edge-tts
+# Geração de áudio com Kokoro TTS
 # ─────────────────────────────────────────────────────────────────────────────
-async def _sintetizar(texto: str, caminho_mp3: str):
-    """Sintetiza texto em MP3 com voz masculina grave."""
-    communicate = edge_tts.Communicate(texto, VOZ, rate="-8%", pitch="-4Hz")
-    with open(caminho_mp3, "wb") as f:
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                f.write(chunk["data"])
+async def _sintetizar(texto: str, caminho_wav: str):
+    """Sintetiza texto em WAV com Kokoro TTS."""
+    from kokoro import KPipeline
+    import soundfile as sf
+    import numpy as np
+
+    # 'p' para Português do Brasil
+    pipeline = KPipeline(lang_code='p')
+    
+    # Speed 1.0
+    generator = pipeline(texto, voice=VOZ, speed=1.0, split_pattern=r'\n+')
+    
+    audio_chunks = []
+    for i, (gs, ps, audio) in enumerate(generator):
+        audio_chunks.append(audio)
+        
+    if not audio_chunks:
+        raise ValueError("Nenhum áudio gerado pelo Kokoro!")
+        
+    final_audio = np.concatenate(audio_chunks)
+    sf.write(caminho_wav, final_audio, 24000)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +82,7 @@ async def _sintetizar(texto: str, caminho_mp3: str):
 # ─────────────────────────────────────────────────────────────────────────────
 def _transcrever_para_srt(audio_path: str, offset_segundos: float = 0.0) -> list[str]:
     """
-    Transcreve MP3 com Groq Whisper e retorna linhas SRT
+    Transcreve WAV com Groq Whisper e retorna linhas SRT
     com offset de tempo aplicado (para sincronizar com o vídeo).
     """
     cliente_groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -80,7 +90,7 @@ def _transcrever_para_srt(audio_path: str, offset_segundos: float = 0.0) -> list
     try:
         with open(audio_path, "rb") as f:
             transcricao = cliente_groq.audio.transcriptions.create(
-                file=("audio.mp3", f.read()),
+                file=("audio.wav", f.read()),
                 model="whisper-large-v3-turbo",
                 response_format="verbose_json",
                 language="pt",
@@ -133,24 +143,25 @@ def _transcrever_para_srt(audio_path: str, offset_segundos: float = 0.0) -> list
 # ─────────────────────────────────────────────────────────────────────────────
 # Interface pública
 # ─────────────────────────────────────────────────────────────────────────────
-def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str]:
+def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, str]:
     """
     Gera os áudios e o SRT unificado para o Short de Quiz.
 
     Fluxo:
-      1. Sintetiza áudio da PERGUNTA → audio_pergunta.mp3
-      2. Sintetiza áudio da RESPOSTA → audio_resposta.mp3
-      3. Transcreve os dois com Groq Whisper com offset correto
-      4. Cria SRT unificado (pergunta + gap de 3s de countdown + resposta)
+      1. Sintetiza áudio da PERGUNTA → audio_pergunta.wav
+      2. Sintetiza áudio do CTA → audio_cta.wav
+      3. Sintetiza áudio da RESPOSTA → audio_resposta.wav
+      4. Transcreve os três com Groq Whisper com offset correto
+      5. Cria SRT unificado (pergunta + CTA + gap de 10s de countdown + resposta)
 
     Retorna:
-      (audio_pergunta_path, audio_resposta_path, srt_path)
+      (audio_pergunta_path, audio_cta_path, audio_resposta_path, srt_path)
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    audio_pergunta_path = os.path.join(output_dir, "audio_pergunta.mp3")
-    audio_cta_path      = os.path.join(output_dir, "audio_cta.mp3")
-    audio_resposta_path = os.path.join(output_dir, "audio_resposta.mp3")
+    audio_pergunta_path = os.path.join(output_dir, "audio_pergunta.wav")
+    audio_cta_path      = os.path.join(output_dir, "audio_cta.wav")
+    audio_resposta_path = os.path.join(output_dir, "audio_resposta.wav")
     srt_path            = os.path.join(output_dir, "legendas.srt")
 
     texto_pergunta = dados_quiz["pergunta_texto"]
@@ -158,21 +169,21 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str]:
     texto_resposta = dados_quiz["resposta_texto"] + " " + dados_quiz["curiosidade_texto"]
 
     # ── Passo 1: Sintetizar áudios ────────────────────────────────────────────
-    print("🎙️  Sintetizando áudio da PERGUNTA com edge-tts...")
+    print(f"🎙️  Sintetizando áudio da PERGUNTA com Kokoro TTS (Voz: {VOZ})...")
     asyncio.run(_sintetizar(texto_pergunta, audio_pergunta_path))
     print(f"✅ Áudio pergunta: {audio_pergunta_path}")
 
-    print("🎙️  Sintetizando áudio do CTA com edge-tts...")
+    print(f"🎙️  Sintetizando áudio do CTA com Kokoro TTS (Voz: {VOZ})...")
     asyncio.run(_sintetizar(texto_cta, audio_cta_path))
     print(f"✅ Áudio CTA: {audio_cta_path}")
 
-    print("🎙️  Sintetizando áudio da RESPOSTA com edge-tts...")
+    print(f"🎙️  Sintetizando áudio da RESPOSTA com Kokoro TTS (Voz: {VOZ})...")
     asyncio.run(_sintetizar(texto_resposta, audio_resposta_path))
     print(f"✅ Áudio resposta: {audio_resposta_path}")
 
     # ── Passo 2: Calcular offset de tempo ─────────────────────────────────────
-    duracao_pergunta = _duracao_mp3(audio_pergunta_path)
-    duracao_cta      = _duracao_mp3(audio_cta_path)
+    duracao_pergunta = _duracao_wav(audio_pergunta_path)
+    duracao_cta      = _duracao_wav(audio_cta_path)
     COUNTDOWN_DURACAO = 10.0  # segundos de silêncio/countdown
 
     offset_cta = duracao_pergunta
@@ -217,6 +228,9 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str]:
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
     with open("output/quiz.json", encoding="utf-8") as f:
         data = json.load(f)
     gerar(data)
+

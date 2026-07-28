@@ -117,7 +117,7 @@ def main():
     # ── Resumo final ─────────────────────────────────────────────────────────
     print("\n" + "═"*60)
     print("  📁 Arquivos gerados:")
-    for nome in ["quiz.json", "audio_pergunta.mp3", "audio_resposta.mp3", "legendas.srt"]:
+    for nome in ["quiz.json", "audio_pergunta.wav", "audio_cta.wav", "audio_resposta.wav", "legendas.srt"]:
         caminho = os.path.join(OUTPUT_DIR, nome)
         if os.path.exists(caminho):
             tamanho = os.path.getsize(caminho)
