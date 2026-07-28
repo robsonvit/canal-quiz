@@ -223,7 +223,7 @@ def montar_video(
     filtros_drawtext = [
         # TOPO - Ato 1 e Countdown: Label "❓ DESAFIO RÁPIDO"
         (
-            "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
             ":text='DESAFIO RAPIDO'"
             ":fontsize=50:fontcolor=white:bordercolor=black:borderw=3"
             ":x=(W-text_w)/2:y=80"
@@ -236,7 +236,7 @@ def montar_video(
         ),
         # Texto "Voce sabe?" acima do número
         (
-            "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
             ":text='Voce sabe a resposta?'"
             ":fontsize=42:fontcolor=yellow:bordercolor=black:borderw=3"
             ":x=(W-text_w)/2:y=200"
@@ -244,7 +244,7 @@ def montar_video(
         ),
         # TOPO - Ato 3: Label "RESPOSTA"
         (
-            "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
             ":text='RESPOSTA'"
             ":fontsize=50:fontcolor=black:bordercolor=white:borderw=2"
             ":box=1:boxcolor=green@0.9:boxborderw=15"
@@ -262,7 +262,7 @@ def montar_video(
         fim    = inicio + 1.0
         cor_borda = cores[i % len(cores)]
         filtro_num = (
-            "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
             f":text='{numero}'"
             f":fontsize=280:fontcolor=white:bordercolor={cor_borda}:borderw=8"
             ":x=(W-text_w)/2:y=(H-text_h)/2"
