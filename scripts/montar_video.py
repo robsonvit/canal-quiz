@@ -219,11 +219,18 @@ def montar_video(
     ]
     subprocess.run(cmd_concat_video, capture_output=True, check=True)
 
+    # Fonte baseada no SO
+    import os
+    if os.name == "nt":
+        font_path = "C\\\\:/Windows/Fonts/arialbd.ttf"
+    else:
+        font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+
     # ── Filtros Drawtext ─────────────────────────────────────────────────────
     filtros_drawtext = [
         # TOPO - Ato 1 e Countdown: Label "❓ DESAFIO RÁPIDO"
         (
-            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
+            f"drawtext=fontfile='{font_path}'"
             ":text='DESAFIO RAPIDO'"
             ":fontsize=50:fontcolor=white:bordercolor=black:borderw=3"
             ":x=(W-text_w)/2:y=80"
@@ -236,7 +243,7 @@ def montar_video(
         ),
         # Texto "Voce sabe?" acima do número
         (
-            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
+            f"drawtext=fontfile='{font_path}'"
             ":text='Voce sabe a resposta?'"
             ":fontsize=42:fontcolor=yellow:bordercolor=black:borderw=3"
             ":x=(W-text_w)/2:y=200"
@@ -244,7 +251,7 @@ def montar_video(
         ),
         # TOPO - Ato 3: Label "RESPOSTA"
         (
-            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
+            f"drawtext=fontfile='{font_path}'"
             ":text='RESPOSTA'"
             ":fontsize=50:fontcolor=black:bordercolor=white:borderw=2"
             ":box=1:boxcolor=green@0.9:boxborderw=15"
@@ -262,7 +269,7 @@ def montar_video(
         fim    = inicio + 1.0
         cor_borda = cores[i % len(cores)]
         filtro_num = (
-            "drawtext=fontfile='C\\:/Windows/Fonts/arialbd.ttf'"
+            f"drawtext=fontfile='{font_path}'"
             f":text='{numero}'"
             f":fontsize=280:fontcolor=white:bordercolor={cor_borda}:borderw=8"
             ":x=(W-text_w)/2:y=(H-text_h)/2"

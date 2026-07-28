@@ -1,6 +1,10 @@
 name: 🧠 Gerar Short de Quiz
 
 on:
+  push:
+    branches:
+      - main
+      - master
   # ── Disparos automáticos 3x/dia (UTC — fuso Brasília UTC-3) ──────────────
   schedule:
     - cron: '0 9 * * *'    # 06:00 BRT → manhã
@@ -51,7 +55,8 @@ jobs:
             ffmpeg \
             fonts-liberation \
             fonts-freefont-ttf \
-            fonts-dejavu-extra
+            fonts-dejavu-extra \
+            espeak-ng
 
       - name: 📦 Instalar dependências Python
         run: pip install -r requirements.txt
