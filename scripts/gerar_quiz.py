@@ -159,25 +159,25 @@ Crie UMA pergunta curiosa e surpreendente sobre o tema: **{tema}**.
 FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 
 {{
-  "pergunta_texto": "Texto da pergunta. DEVE SER EXTREMAMENTE CURTA E DIRETA (MÁXIMO 10-15 PALAVRAS). Vá direto ao ponto. Exemplos por tema:\n- animal: 'Qual o animal mais venenoso do mundo?'\n- astronomia: 'Qual planeta tem chuva de diamantes?'\n- culinária: 'Qual o tempero mais caro do mundo?'\n- matemática: 'Qual número dividido por zero não tem resposta?'\n- raciocínio lógico: 'Se hoje é quarta, que dia será daqui a 100 dias?'\n- geografia: 'Qual país tem mais idiomas oficiais do mundo?'\n- história: 'Qual civilização inventou o papel?'\n- filosofia: 'Quem disse que só sei que nada sei?'\n- física: 'Por que o céu é azul e não verde?'\n- fenômenos: 'Por que os relâmpagos caem em lugares altos?'\n- futebol: 'Qual jogador ganhou mais Copas do Mundo?'\nNão use introduções longas como 'Você sabia...'. Termine com '...você tem 3 segundos para responder!'",
+  "pergunta_texto": "Texto da pergunta. DEVE COMEÇAR OBRIGATORIAMENTE com 'Você sabe' ou 'Você sabia que ' para criar intimidade. Vá direto ao ponto. Exemplos por tema:\n- animal: 'Você sabe qual é o animal mais venenoso do mundo?'\n- astronomia: 'Você sabia que existe um planeta com chuva de diamantes?'\n- culinária: 'Você sabe qual é o tempero mais caro do mundo?'\n- matemática: 'Você sabe qual número dividido por zero não tem resposta?'\n- raciocínio lógico: 'Você sabe que dia será daqui a 100 dias se hoje for quarta?'\n- geografia: 'Você sabe qual país tem mais idiomas oficiais do mundo?'\n- história: 'Você sabia qual civilização inventou o papel?'\n- filosofia: 'Você sabe quem disse que só sei que nada sei?'\n- física: 'Você sabe por que o céu é azul e não verde?'\n- fenômenos: 'Você sabia por que os relâmpagos caem em lugares altos?'\n- futebol: 'Você sabe qual jogador ganhou mais Copas do Mundo?'\nTermine com '...você tem 3 segundos para responder!'",
   "resposta_texto": "Resposta direta e clara, 1 frase curta e impactante.",
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom acessível e envolvente.",
   "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
   "termos_imagem_resposta": ["termo1_ingles", "termo2_ingles"],
-  "titulo": "Emoji + A pergunta exata do vídeo (sem o countdown final) + #Shorts. Ex: '🌺 Qual flor mais venenosa do mundo? #Shorts'. Máximo 80 caracteres.",
+  "titulo": "Emoji + A pergunta exata do vídeo (sem o countdown final) + #Shorts. Ex: '🌺 Você sabe qual a flor mais venenosa do mundo? #Shorts'. Máximo 80 caracteres.",
   "descricao": "IMPORTANTE: A descrição DEVE COMEÇAR com a pergunta exata do vídeo (sem o countdown). Depois adicione a resposta e use emojis. No final, inclua as hashtags genéricas (#Shorts #Quiz #Curiosidades) E adicione de 3 a 5 hashtags muito específicas relacionadas ao assunto do vídeo (ex: #flor #veneno #natureza). Máx 400 chars.",
   "tags": ["Shorts", "Quiz", "Curiosidades", "Você Sabia", "{tema}", "fatos curiosos", "ciência", "conhecimento", "quiz brasil", "perguntas e respostas"]
 }}
 
 REGRAS:
-- A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 15 palavras).
+- A pergunta DEVE SER OBJETIVA, DIRETA E CURTA (máx 20 palavras) E COMEÇAR COM 'Você sabe' ou 'Você sabia que '.
 - A pergunta deve ser sobre o tema '{tema}' especificamente.
 - A resposta deve ser verificável e factualmente correta.
 - O TÍTULO DEVE SER A PERGUNTA (com emoji no início e #Shorts no final).
 - A DESCRIÇÃO DEVE COMEÇAR com a pergunta (sem o countdown final) — isso é crítico para SEO.
 - A DESCRIÇÃO DEVE CONTER hashtags específicas do assunto.
 - Os termos de imagem devem ser em INGLÊS para busca no Pexels.
-- Tom: animado, direto, engajante.
+- Tom: animado, direto, engajante e íntimo com o espectador.
 - Sem markdown fora do JSON.
 """
 
