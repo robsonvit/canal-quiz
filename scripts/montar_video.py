@@ -151,7 +151,14 @@ def montar_video(
         os.makedirs("data", exist_ok=True)
         _baixar_musica_quiz(musica_path)
 
-    srt_escaped = _escape_srt_path(legendas_srt)
+    import shutil
+    import uuid
+    # Usar a pasta TEMP do Windows (sem acentos) para evitar o erro "Invalid argument" no FFmpeg/libass
+    temp_srt = os.path.join(os.environ.get("TEMP", "C:/Windows/Temp"), f"legendas_{uuid.uuid4().hex}.srt")
+    shutil.copy2(legendas_srt, temp_srt)
+    
+    # Escapar caminho absoluto para FFmpeg no Windows
+    srt_escaped = temp_srt.replace('\\', '/').replace(':', '\\\\:')
     # Legenda amarela, SEM CAIXA, com sombra preta
     subtitle_style = ",".join([
         "Fontname=Arial",
@@ -315,7 +322,7 @@ def montar_video(
         raise RuntimeError(f"FFmpeg falhou na montagem final:\n{resultado.stderr[-1200:]}")
 
     # Limpar temporários
-    for tmp in [bg_color_vid, video_resp_loop, video_raw, lista_video, audio_final]:
+    for tmp in [bg_color_vid, video_resp_loop, video_raw, lista_video, audio_final, temp_srt]:
         if os.path.exists(tmp):
             os.remove(tmp)
 

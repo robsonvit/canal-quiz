@@ -164,7 +164,7 @@ FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom acessível e envolvente.",
   "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
   "termos_imagem_resposta": ["termo1_ingles", "termo2_ingles"],
-  "titulo": "Emoji + A pergunta exata do vídeo (sem o countdown final) + #Shorts. Ex: '🌺 Você sabe qual a flor mais venenosa do mundo? #Shorts'. Máximo 80 caracteres.",
+  "titulo": "Emoji + A pergunta exata do vídeo (sem o countdown final) + #Shorts. Ex: '🌺 Qual a flor mais venenosa do mundo? #Shorts'. Máximo 80 caracteres.",
   "descricao": "IMPORTANTE: A descrição DEVE COMEÇAR com a pergunta exata do vídeo (sem o countdown). Depois adicione a resposta e use emojis. No final, inclua as hashtags genéricas (#Shorts #Quiz #Curiosidades) E adicione de 3 a 5 hashtags muito específicas relacionadas ao assunto do vídeo (ex: #flor #veneno #natureza). Máx 400 chars.",
   "tags": ["Shorts", "Quiz", "Curiosidades", "Você Sabia", "{tema}", "fatos curiosos", "ciência", "conhecimento", "quiz brasil", "perguntas e respostas"]
 }}
