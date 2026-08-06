@@ -7,6 +7,12 @@ para o Short de Quiz e produz arquivo SRT de legendas via Groq Whisper.
 O áudio é gerado em 3 partes separadas (pergunta, CTA, resposta).
 As legendas SRT são geradas para cada parte e concatenadas
 com offset de tempo correto para sincronizar com o vídeo final.
+
+Estrutura do Short:
+  Ato 1 → Gancho (pergunta TTS com efeito sonoro)
+  Ato 2 → Countdown 3s (silêncio no áudio principal)
+  Ato 3 → Resposta direta + curiosidade
+  Ato 4 → CTA de inscrição (apelo aleatório brasileiro)
 """
 
 import asyncio
@@ -19,8 +25,9 @@ from groq import Groq
 # ─────────────────────────────────────────────────────────────────────────────
 # Configurações da voz
 # ─────────────────────────────────────────────────────────────────────────────
-VOZ                 = "pf_dora"   # Voz feminina do Kokoro TTS
-PALAVRAS_POR_LEGENDA = 4          # Blocos pequenos para tela mobile
+VOZ                  = "pf_dora"   # Voz feminina do Kokoro TTS
+PALAVRAS_POR_LEGENDA = 4           # Blocos pequenos para tela mobile
+COUNTDOWN_DURACAO    = 3.0         # segundos de countdown (era 10s)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -143,19 +150,22 @@ def _transcrever_para_srt(audio_path: str, offset_segundos: float = 0.0) -> list
 # ─────────────────────────────────────────────────────────────────────────────
 # Interface pública
 # ─────────────────────────────────────────────────────────────────────────────
-def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, str]:
+def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, str, str]:
     """
     Gera os áudios e o SRT unificado para o Short de Quiz.
 
     Fluxo:
-      1. Sintetiza áudio da PERGUNTA → audio_pergunta.wav
-      2. Sintetiza áudio do CTA → audio_cta.wav
-      3. Sintetiza áudio da RESPOSTA → audio_resposta.wav
+      1. Sintetiza áudio da PERGUNTA (gancho) → audio_pergunta.wav
+      2. Sintetiza áudio da RESPOSTA + curiosidade → audio_resposta.wav
+      3. Sintetiza áudio do CTA de inscrição → audio_cta.wav
       4. Transcreve os três com Groq Whisper com offset correto
-      5. Cria SRT unificado (pergunta + CTA + gap de 10s de countdown + resposta)
+      5. Cria SRT unificado (pergunta + gap de 3s countdown + resposta + CTA)
 
     Retorna:
       (audio_pergunta_path, audio_cta_path, audio_resposta_path, srt_path)
+
+    Nota: o CTA agora vem de dados_quiz["cta_inscricao"] (gerado pela IA
+    com apelo aleatório: superstição, história ou promessa).
     """
     os.makedirs(output_dir, exist_ok=True)
 
@@ -165,60 +175,71 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, 
     srt_path            = os.path.join(output_dir, "legendas.srt")
 
     texto_pergunta = dados_quiz["pergunta_texto"]
-    texto_cta      = "Vou te dar dez segundos para escrever sua resposta nos comentários e me seguir."
     texto_resposta = dados_quiz["resposta_texto"] + " " + dados_quiz["curiosidade_texto"]
 
-    # ── Passo 1: Sintetizar áudios ────────────────────────────────────────────
-    print(f"🎙️  Sintetizando áudio da PERGUNTA com Kokoro TTS (Voz: {VOZ})...")
-    asyncio.run(_sintetizar(texto_pergunta, audio_pergunta_path))
-    print(f"✅ Áudio pergunta: {audio_pergunta_path}")
+    # CTA agora é gerado dinamicamente pela IA (superstição / história / promessa)
+    texto_cta = dados_quiz.get(
+        "cta_inscricao",
+        "Me segue para não perder as próximas perguntas!"  # fallback seguro
+    )
 
-    print(f"🎙️  Sintetizando áudio do CTA com Kokoro TTS (Voz: {VOZ})...")
-    asyncio.run(_sintetizar(texto_cta, audio_cta_path))
-    print(f"✅ Áudio CTA: {audio_cta_path}")
+    # ── Passo 1: Sintetizar áudios ────────────────────────────────────────────
+    print(f"🎙️  Sintetizando áudio do GANCHO com Kokoro TTS (Voz: {VOZ})...")
+    asyncio.run(_sintetizar(texto_pergunta, audio_pergunta_path))
+    print(f"✅ Áudio gancho (pergunta): {audio_pergunta_path}")
 
     print(f"🎙️  Sintetizando áudio da RESPOSTA com Kokoro TTS (Voz: {VOZ})...")
     asyncio.run(_sintetizar(texto_resposta, audio_resposta_path))
     print(f"✅ Áudio resposta: {audio_resposta_path}")
 
-    # ── Passo 2: Calcular offset de tempo ─────────────────────────────────────
-    duracao_pergunta = _duracao_wav(audio_pergunta_path)
-    duracao_cta      = _duracao_wav(audio_cta_path)
-    COUNTDOWN_DURACAO = 10.0  # segundos de silêncio/countdown
+    print(f"🎙️  Sintetizando áudio do CTA com Kokoro TTS (Voz: {VOZ})...")
+    print(f"   Texto CTA: {texto_cta}")
+    asyncio.run(_sintetizar(texto_cta, audio_cta_path))
+    print(f"✅ Áudio CTA: {audio_cta_path}")
 
-    offset_cta = duracao_pergunta
-    offset_resposta = duracao_pergunta + duracao_cta + COUNTDOWN_DURACAO
+    # ── Passo 2: Calcular offsets de tempo ────────────────────────────────────
+    duracao_pergunta = _duracao_wav(audio_pergunta_path)
+    duracao_resposta = _duracao_wav(audio_resposta_path)
+    # O countdown (3s) vem depois da pergunta
+    offset_resposta  = duracao_pergunta + COUNTDOWN_DURACAO
+    # O CTA vem depois da resposta
+    offset_cta       = offset_resposta + duracao_resposta
 
     print(f"⏱️  Duração da pergunta : {duracao_pergunta:.1f}s")
-    print(f"⏱️  Duração do CTA      : {duracao_cta:.1f}s")
-    print(f"⏱️  Offset da resposta  : {offset_resposta:.1f}s (pergunta + CTA + 10s countdown)")
+    print(f"⏱️  Countdown           : {COUNTDOWN_DURACAO:.0f}s")
+    print(f"⏱️  Duração da resposta : {duracao_resposta:.1f}s")
+    print(f"⏱️  Offset do CTA       : {offset_cta:.1f}s")
 
     # ── Passo 3: Gerar legendas SRT unificado ─────────────────────────────────
-    print("📝 Transcrevendo PERGUNTA com Groq Whisper...")
+    print("📝 Transcrevendo GANCHO com Groq Whisper...")
     linhas_pergunta = _transcrever_para_srt(audio_pergunta_path, offset_segundos=0.0)
-
-    print("📝 Transcrevendo CTA com Groq Whisper...")
-    linhas_cta = _transcrever_para_srt(audio_cta_path, offset_segundos=offset_cta)
 
     print("📝 Transcrevendo RESPOSTA com Groq Whisper...")
     linhas_resposta = _transcrever_para_srt(audio_resposta_path, offset_segundos=offset_resposta)
 
-    # Renumerar as linhas
-    idx_base = len(linhas_pergunta) + 1
-    linhas_cta_renumeradas = []
-    for idx_rel, bloco in enumerate(linhas_cta):
-        linhas = bloco.split("\n")
-        linhas[0] = str(idx_base + idx_rel)
-        linhas_cta_renumeradas.append("\n".join(linhas))
+    print("📝 Transcrevendo CTA com Groq Whisper...")
+    linhas_cta = _transcrever_para_srt(audio_cta_path, offset_segundos=offset_cta)
 
-    idx_base += len(linhas_cta)
+    # Renumerar as linhas da resposta e do CTA
+    idx_base = len(linhas_pergunta) + 1
     linhas_resposta_renumeradas = []
     for idx_rel, bloco in enumerate(linhas_resposta):
         linhas = bloco.split("\n")
         linhas[0] = str(idx_base + idx_rel)
         linhas_resposta_renumeradas.append("\n".join(linhas))
 
-    srt_content = "\n".join(linhas_pergunta + linhas_cta_renumeradas + linhas_resposta_renumeradas)
+    idx_base += len(linhas_resposta)
+    linhas_cta_renumeradas = []
+    for idx_rel, bloco in enumerate(linhas_cta):
+        linhas = bloco.split("\n")
+        linhas[0] = str(idx_base + idx_rel)
+        linhas_cta_renumeradas.append("\n".join(linhas))
+
+    srt_content = "\n".join(
+        linhas_pergunta
+        + linhas_resposta_renumeradas
+        + linhas_cta_renumeradas
+    )
 
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)
@@ -233,4 +254,3 @@ if __name__ == "__main__":
     with open("output/quiz.json", encoding="utf-8") as f:
         data = json.load(f)
     gerar(data)
-

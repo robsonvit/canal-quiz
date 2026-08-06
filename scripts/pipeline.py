@@ -4,10 +4,10 @@ pipeline.py
 Orquestrador principal do Canal Quiz Shorts.
 Executa todos os passos em sequência:
 
-  1. Gerar pergunta curiosa + resposta via Groq AI (llama-3.3-70b)
-  2. Gerar áudio TTS da pergunta e da resposta (edge-tts) + legendas SRT
-  3. Buscar imagens relacionadas (pergunta + resposta) via Pexels
-  4. Montar Short 1080×1920 com 3 atos (pergunta → countdown → resposta)
+  1. Gerar pergunta curiosa + resposta + CTA de inscrição via Groq AI
+  2. Gerar áudio TTS (gancho + resposta + CTA) e legendas SRT
+  3. Buscar vídeos relacionados (resposta) via Pexels
+  4. Montar Short 1080×1920 com 4 atos (gancho+SFX → countdown 3s → resposta → CTA)
   5. Upload para o YouTube como Short (publicação imediata)
 
 Uso:
@@ -40,13 +40,13 @@ def main():
 
     print("\n" + "═"*60)
     print("  🧠  CANAL QUIZ — SHORTS PIPELINE")
-    print("       Modo Engenharia: Pergunta → Countdown → Resposta")
+    print("       Gancho + SFX → Countdown 3s → Resposta → CTA")
     print("═"*60)
 
     # ──────────────────────────────────────────────────────────────────────────
-    # PASSO 1 — Gerar pergunta + resposta com Groq AI
+    # PASSO 1 — Gerar pergunta + resposta + CTA com Groq AI
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(1, 5, "Gerando quiz com Groq AI (llama-3.3-70b)...")
+    _titulo(1, 5, "Gerando quiz + CTA com Groq AI (llama-3.3-70b)...")
     from scripts.gerar_quiz import gerar_quiz
 
     dados = gerar_quiz()
@@ -59,12 +59,13 @@ def main():
     print(f"   Tema      : {dados.get('tema', '?')}")
     print(f"   Pergunta  : {dados['pergunta_texto'][:70]}...")
     print(f"   Resposta  : {dados['resposta_texto']}")
+    print(f"   CTA       : {dados.get('cta_inscricao', '?')}")
     print(f"   Título    : {dados.get('titulo', '?')}")
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 2 — Gerar áudio TTS + legendas SRT
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(2, 5, "Gerando áudio TTS (pt-BR-AntonioNeural) + legendas Groq Whisper...")
+    _titulo(2, 5, "Gerando áudios TTS (gancho + resposta + CTA) + legendas Groq Whisper...")
     from scripts.gerar_audio import gerar as gerar_audio
 
     audio_pergunta, audio_cta, audio_resposta, srt_path = gerar_audio(dados, OUTPUT_DIR)
@@ -83,9 +84,9 @@ def main():
     print(f"✅ Vídeos de resposta concatenados: {video_resposta}")
 
     # ──────────────────────────────────────────────────────────────────────────
-    # PASSO 4 — Montar Short 1080×1920 com 3 atos
+    # PASSO 4 — Montar Short 1080×1920 com 4 atos
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(4, 5, "Montando Short 1080×1920 (Cor Sólida → Countdown 10s → Vídeo)...")
+    _titulo(4, 5, "Montando Short 1080×1920 (Gancho+SFX → Countdown 3s → Resposta → CTA)...")
     from scripts.montar_video import montar_video
 
     video_final = montar_video(
@@ -96,7 +97,7 @@ def main():
         legendas_srt   = srt_path,
         output_dir     = OUTPUT_DIR,
         resposta_curta = dados.get("resposta_texto", "")[:60],
-        countdown_s    = 10.0,
+        countdown_s    = 3.0,
     )
 
     # ──────────────────────────────────────────────────────────────────────────

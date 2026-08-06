@@ -3,18 +3,19 @@ montar_video.py
 ───────────────
 Monta o Short final 1080×1920 (9:16) para o YouTube no formato Quiz:
 
-  ATO 1 — PERGUNTA (~5-8s) + CTA (~5s)
-    • Fundo de cor sólida dinâmica (sem imagem)
+  ATO 1 — GANCHO CHAMATIVO (~5-8s)
+    • Fundo de cor sólida dinâmica
+    • Efeito sonoro de impacto no início (sfx_gancho.mp3)
     • Áudio TTS da pergunta
-    • Áudio TTS do CTA
     • Legendas na tela (amarelo puro com borda preta)
     • Overlay "❓ DESAFIO RÁPIDO" no topo
 
-  ATO 2 — COUNTDOWN (10s)
+  ATO 2 — COUNTDOWN (3s)
     • Fundo sólido continua, com overlay escurecido
-    • Números 10 → 1 centralizados, animados
+    • Números 3 → 1 centralizados, animados
     • Texto "Você sabe a resposta?" acima do número
     • Música de QUIZ (volume alto)
+    • Efeito sonoro de reveal (sfx_resposta.mp3) no fim do countdown
 
   ATO 3 — RESPOSTA (~8-12s)
     • Vídeo vertical relacionado à resposta (múltiplos vídeos do Pexels)
@@ -22,12 +23,19 @@ Monta o Short final 1080×1920 (9:16) para o YouTube no formato Quiz:
     • Legendas na tela
     • Overlay "✅ RESPOSTA:" no topo com a resposta curta em caixa colorida
     • Música volta ao volume suave
+
+  ATO 4 — CTA DE INSCRIÇÃO (~4-6s)
+    • Continua o vídeo do Pexels
+    • Áudio TTS do CTA (apelo aleatório: superstição / história / promessa)
+    • Legendas na tela
+    • Overlay "🔔 SEGUE O CANAL!" no topo
 """
 
 import os
 import json
 import subprocess
 import re
+
 
 def _duracao_audio(audio_path: str) -> float:
     cmd = [
@@ -60,9 +68,15 @@ def _escape_drawtext(texto: str) -> str:
             .replace("]",  "\\]"))
 
 
-def _concatenar_audios(audio_p: str, audio_cta: str, silencio_s: float, audio_r: str, output: str):
+def _concatenar_audios(
+    audio_p: str,
+    audio_r: str,
+    audio_cta: str,
+    silencio_s: float,
+    output: str,
+):
     """
-    Concatena Pergunta + CTA + Silêncio de 10s + Resposta usando filter_complex
+    Concatena: Pergunta (gancho) + Silêncio countdown + Resposta + CTA
     """
     silencio_path = output.replace(".mp3", "_silencio.mp3")
 
@@ -80,9 +94,9 @@ def _concatenar_audios(audio_p: str, audio_cta: str, silencio_s: float, audio_r:
     cmd_concat = [
         "ffmpeg", "-y",
         "-i", audio_p,
-        "-i", audio_cta,
         "-i", silencio_path,
         "-i", audio_r,
+        "-i", audio_cta,
         "-filter_complex", "[0:a][1:a][2:a][3:a]concat=n=4:v=0:a=1[aout]",
         "-map", "[aout]",
         "-c:a", "libmp3lame",
@@ -109,9 +123,93 @@ def _baixar_musica_quiz(dest: str):
                 f.write(chunk)
     except Exception as e:
         print(f"⚠️ Falha ao baixar música de quiz: {e}")
-        print("🎵 Gerando áudio de silêncio como fallback para não quebrar o vídeo...")
+        print("🎵 Gerando áudio de silêncio como fallback...")
         cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "60", "-c:a", "libmp3lame", dest]
         subprocess.run(cmd, capture_output=True)
+
+
+def _baixar_sfx(dest: str, tipo: str):
+    """
+    Baixa efeitos sonoros gratuitos (domínio público) para o gancho e a revelação.
+    tipo: 'gancho' ou 'resposta'
+    """
+    import requests
+
+    # URLs de efeitos sonoros de domínio público (freesound via URLs diretas)
+    urls = {
+        "gancho": [
+            # Woosh/swoosh dramático para o início do gancho
+            "https://freesound.org/data/previews/320/320655_5260872-lq.mp3",
+            "https://www.soundjay.com/misc/sounds/fail-buzzer-01.mp3",
+        ],
+        "resposta": [
+            # Ding / reveal para a entrada da resposta
+            "https://freesound.org/data/previews/411/411089_5121236-lq.mp3",
+            "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3",
+        ],
+    }
+
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+    for url in urls.get(tipo, []):
+        try:
+            print(f"🔊 Baixando SFX ({tipo}): {url}")
+            r = requests.get(url, headers=headers, timeout=10, stream=True)
+            r.raise_for_status()
+            with open(dest, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            # Verificar se o arquivo tem tamanho mínimo (evita HTML de erro)
+            if os.path.getsize(dest) > 5000:
+                print(f"✅ SFX ({tipo}) baixado: {dest}")
+                return
+            else:
+                print(f"⚠️ Arquivo muito pequeno, tentando próxima URL...")
+                os.remove(dest)
+        except Exception as e:
+            print(f"⚠️ Falha ao baixar SFX ({tipo}) de {url}: {e}")
+
+    # Fallback: gera um beep curto via FFmpeg
+    print(f"🔊 Gerando beep de fallback para SFX ({tipo})...")
+    duracao = "0.3" if tipo == "gancho" else "0.5"
+    freq    = "800"  if tipo == "gancho" else "1200"
+    cmd = [
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", f"sine=frequency={freq}:duration={duracao}",
+        "-c:a", "libmp3lame",
+        "-b:a", "128k",
+        dest,
+    ]
+    subprocess.run(cmd, capture_output=True)
+    print(f"✅ Beep de fallback gerado: {dest}")
+
+
+def _mixar_sfx_com_voz(voz_path: str, sfx_path: str, output_path: str, sfx_volume: float = 0.6):
+    """
+    Mixa o efeito sonoro com a narração da voz.
+    O SFX toca no início, a voz aparece junto mas domina.
+    """
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", voz_path,
+        "-i", sfx_path,
+        "-filter_complex",
+        (
+            f"[1:a]volume={sfx_volume}[sfx];"
+            "[0:a][sfx]amix=inputs=2:duration=first:dropout_transition=1[aout]"
+        ),
+        "-map", "[aout]",
+        "-c:a", "libmp3lame",
+        "-b:a", "128k",
+        output_path,
+    ]
+    resultado = subprocess.run(cmd, capture_output=True, text=True)
+    if resultado.returncode != 0:
+        print(f"⚠️ Falha ao mixar SFX: {resultado.stderr[-400:]}")
+        # Fallback: usa a voz sem SFX
+        import shutil
+        shutil.copy2(voz_path, output_path)
 
 
 def montar_video(
@@ -122,45 +220,66 @@ def montar_video(
     legendas_srt: str,
     output_dir: str = "output",
     resposta_curta: str = "",
-    countdown_s: float = 10.0,
+    countdown_s: float = 3.0,
 ) -> str:
     """
-    Monta o Short de Quiz com 3 atos principais:
-      Ato 1: Fundo Sólido + audio_pergunta + audio_cta
-      Ato 2: Fundo Sólido + Countdown 10s
-      Ato 3: VídeosResposta + audio_resposta
+    Monta o Short de Quiz com 4 atos:
+      Ato 1: Fundo Sólido + gancho (pergunta com SFX de impacto)
+      Ato 2: Fundo Sólido + Countdown 3s (com música alta)
+      Ato 3: Vídeo Resposta + áudio da resposta
+      Ato 4: Vídeo Resposta + CTA de inscrição (apelo aleatório)
     """
     os.makedirs(output_dir, exist_ok=True)
     output_path   = os.path.join(output_dir, "video_final.mp4")
     audio_final   = os.path.join(output_dir, "audio_final.mp3")
     musica_path   = os.path.join("data", "quiz_music.mp3")
+    sfx_gancho    = os.path.join("data", "sfx_gancho.mp3")
+    sfx_resposta  = os.path.join("data", "sfx_resposta.mp3")
+    audio_gancho_sfx = os.path.join(output_dir, "audio_gancho_sfx.mp3")
 
-    dur_pergunta = _duracao_audio(audio_pergunta)
-    dur_cta      = _duracao_audio(audio_cta)
-    dur_resposta = _duracao_audio(audio_resposta)
-    
-    dur_ato1     = dur_pergunta + dur_cta
-    dur_total    = dur_ato1 + countdown_s + dur_resposta
-
-    print(f"⏱️  Duração: Pergunta+CTA={dur_ato1:.1f}s | Countdown={countdown_s:.0f}s | Resposta={dur_resposta:.1f}s | Total={dur_total:.1f}s")
-
-    print("🔊 Concatenando áudios (pergunta + cta + silêncio + resposta)...")
-    _concatenar_audios(audio_pergunta, audio_cta, countdown_s, audio_resposta, audio_final)
-
+    # ── Baixar assets se necessários ─────────────────────────────────────────
     if not os.path.exists(musica_path):
         os.makedirs("data", exist_ok=True)
         _baixar_musica_quiz(musica_path)
 
+    if not os.path.exists(sfx_gancho):
+        os.makedirs("data", exist_ok=True)
+        _baixar_sfx(sfx_gancho, "gancho")
+
+    if not os.path.exists(sfx_resposta):
+        os.makedirs("data", exist_ok=True)
+        _baixar_sfx(sfx_resposta, "resposta")
+
+    # ── Mixar efeito sonoro com o gancho (pergunta) ───────────────────────────
+    print("🔊 Mixando efeito sonoro de impacto com o áudio do gancho...")
+    _mixar_sfx_com_voz(audio_pergunta, sfx_gancho, audio_gancho_sfx, sfx_volume=0.5)
+
+    # ── Calcular durações ─────────────────────────────────────────────────────
+    dur_pergunta = _duracao_audio(audio_gancho_sfx)
+    dur_resposta = _duracao_audio(audio_resposta)
+    dur_cta      = _duracao_audio(audio_cta)
+
+    dur_ato1     = dur_pergunta
+    dur_ato3_4   = dur_resposta + dur_cta
+    dur_total    = dur_ato1 + countdown_s + dur_ato3_4
+
+    print(f"⏱️  Gancho={dur_pergunta:.1f}s | Countdown={countdown_s:.0f}s | Resposta={dur_resposta:.1f}s | CTA={dur_cta:.1f}s | Total={dur_total:.1f}s")
+
+    # ── Concatenar áudios: gancho + silêncio countdown + resposta + CTA ───────
+    print("🔊 Concatenando áudios (gancho + silêncio + resposta + CTA)...")
+    _concatenar_audios(audio_gancho_sfx, audio_resposta, audio_cta, countdown_s, audio_final)
+
     import shutil
     import uuid
     import tempfile
-    
+
     # Criar arquivo temporário de forma segura (funciona no Windows e Linux)
     temp_srt = os.path.join(tempfile.gettempdir(), f"legendas_{uuid.uuid4().hex}.srt")
     shutil.copy2(legendas_srt, temp_srt)
-    
+
     # Escapar caminho absoluto para FFmpeg no Windows
     srt_escaped = temp_srt.replace('\\', '/').replace(':', '\\\\:')
+
     # Legenda amarela, SEM CAIXA, com sombra preta
     subtitle_style = ",".join([
         "Fontname=Arial",
@@ -176,14 +295,15 @@ def montar_video(
         "MarginV=120",
     ])
 
-    # ── Tempos do Ato 1 e Ato 2 ─────────────────────────────────────────────
+    # ── Tempos dos atos ──────────────────────────────────────────────────────
     t_start_countdown = dur_ato1
     t_end_countdown   = dur_ato1 + countdown_s
+    t_start_cta       = t_end_countdown + dur_resposta
+    t_end_video       = dur_total
 
-    # ── Criar vídeo visual (Ato 1 e Ato 3) ───────────────────────────────────
-    print("🎨 Gerando fundo de cor sólida para a pergunta e countdown...")
+    # ── Criar vídeo de fundo sólido para gancho + countdown ──────────────────
+    print("🎨 Gerando fundo de cor sólida para o gancho e countdown...")
     bg_color_vid = os.path.join(output_dir, "bg_color.mp4")
-    # Cor base: #1b263b
     cmd_color = [
         "ffmpeg", "-y",
         "-f", "lavfi",
@@ -196,13 +316,14 @@ def montar_video(
     ]
     subprocess.run(cmd_color, capture_output=True, check=True)
 
-    print("🎬 Cortando o vídeo concatenado da resposta para caber exatamente no Ato 3...")
+    # ── Criar vídeo da resposta (loop) para Ato 3 + Ato 4 (resposta + CTA) ───
+    print("🎬 Cortando vídeo da resposta para o Ato 3+4...")
     video_resp_loop = os.path.join(output_dir, "vid_r_loop.mp4")
     cmd_resp_loop = [
         "ffmpeg", "-y",
         "-stream_loop", "-1",
         "-i", video_resposta,
-        "-t", str(dur_resposta),
+        "-t", str(dur_ato3_4),
         "-vf", "fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
         "-c:v", "libx264",
         "-preset", "fast",
@@ -212,7 +333,8 @@ def montar_video(
     ]
     subprocess.run(cmd_resp_loop, capture_output=True, check=True)
 
-    print("✂️  Concatenando partes visuais...")
+    # ── Concatenar partes visuais ─────────────────────────────────────────────
+    print("✂️  Concatenando partes visuais (fundo sólido + vídeo)...")
     lista_video = os.path.join(output_dir, "video_concat.txt")
     with open(lista_video, "w", encoding="utf-8") as f:
         f.write(f"file '{os.path.abspath(bg_color_vid).replace(chr(92), '/')}'\n")
@@ -234,9 +356,9 @@ def montar_video(
     else:
         font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 
-    # ── Filtros Drawtext ─────────────────────────────────────────────────────
+    # ── Filtros Drawtext ──────────────────────────────────────────────────────
     filtros_drawtext = [
-        # TOPO - Ato 1 e Countdown: Label "❓ DESAFIO RÁPIDO"
+        # TOPO - Ato 1 (gancho) e Countdown: "DESAFIO RAPIDO"
         (
             f"drawtext=fontfile='{font_path}'"
             ":text='DESAFIO RAPIDO'"
@@ -249,7 +371,7 @@ def montar_video(
             "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill"
             f":enable='between(t,{t_start_countdown:.2f},{t_end_countdown:.2f})'"
         ),
-        # Texto "Voce sabe?" acima do número
+        # "Voce sabe a resposta?" acima do número no countdown
         (
             f"drawtext=fontfile='{font_path}'"
             ":text='Voce sabe a resposta?'"
@@ -257,25 +379,33 @@ def montar_video(
             ":x=(W-text_w)/2:y=200"
             f":enable='between(t,{t_start_countdown:.2f},{t_end_countdown:.2f})'"
         ),
-        # TOPO - Ato 3: Label "RESPOSTA"
+        # TOPO - Ato 3 (resposta): "RESPOSTA"
         (
             f"drawtext=fontfile='{font_path}'"
             ":text='RESPOSTA'"
             ":fontsize=50:fontcolor=black:bordercolor=white:borderw=2"
             ":box=1:boxcolor=green@0.9:boxborderw=15"
             ":x=(W-text_w)/2:y=80"
-            f":enable='gte(t,{t_end_countdown:.2f})'"
-        )
+            f":enable='between(t,{t_end_countdown:.2f},{t_start_cta:.2f})'"
+        ),
+        # TOPO - Ato 4 (CTA de inscrição): "SEGUE O CANAL!"
+        (
+            f"drawtext=fontfile='{font_path}'"
+            ":text='SEGUE O CANAL!'"
+            ":fontsize=50:fontcolor=black:bordercolor=white:borderw=2"
+            ":box=1:boxcolor=red@0.9:boxborderw=15"
+            ":x=(W-text_w)/2:y=80"
+            f":enable='gte(t,{t_start_cta:.2f})'"
+        ),
     ]
 
-    # Adicionar números dinamicamente (10 até 1)
-    # Ex: Para contador de 10s
-    cores = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "red", "orange", "yellow"]
+    # Adicionar números do countdown dinamicamente (3 → 1)
+    cores_countdown = ["red", "orange", "yellow"]
     for i in range(int(countdown_s)):
-        numero = int(countdown_s) - i
-        inicio = t_start_countdown + i
-        fim    = inicio + 1.0
-        cor_borda = cores[i % len(cores)]
+        numero    = int(countdown_s) - i
+        inicio    = t_start_countdown + i
+        fim       = inicio + 1.0
+        cor_borda = cores_countdown[i % len(cores_countdown)]
         filtro_num = (
             f"drawtext=fontfile='{font_path}'"
             f":text='{numero}'"
@@ -289,9 +419,8 @@ def montar_video(
     filtros_str = ",".join(filtros_drawtext)
     filtros_str += f",subtitles='{srt_escaped}':force_style='{subtitle_style}'"
 
-    # Volume do BG Music: baixo na pergunta (0.1), alto no countdown (0.5), baixo na resposta (0.1)
-    # Aumenta durante o countdown para criar impacto.
-    volume_expr = f"if(between(t,{t_start_countdown:.2f},{t_end_countdown:.2f}),0.5,0.1)"
+    # Volume da música BG: baixo no gancho (0.08), alto no countdown (0.5), suave na resposta/CTA (0.08)
+    volume_expr = f"if(between(t,{t_start_countdown:.2f},{t_end_countdown:.2f}),0.5,0.08)"
 
     cmd_final = [
         "ffmpeg", "-y",
@@ -324,7 +453,7 @@ def montar_video(
         raise RuntimeError(f"FFmpeg falhou na montagem final:\n{resultado.stderr[-1200:]}")
 
     # Limpar temporários
-    for tmp in [bg_color_vid, video_resp_loop, video_raw, lista_video, audio_final, temp_srt]:
+    for tmp in [bg_color_vid, video_resp_loop, video_raw, lista_video, audio_final, audio_gancho_sfx, temp_srt]:
         if os.path.exists(tmp):
             os.remove(tmp)
 

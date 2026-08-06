@@ -5,9 +5,10 @@ Gera uma pergunta curiosa + resposta + curiosidade extra usando a API Groq
 (llama-3.3-70b-versatile) no formato "Modo Engenharia" para YouTube Shorts.
 
 Formato do Short:
-  Ato 1 → Pergunta (voz + imagem relacionada)
+  Ato 1 → Gancho (pergunta + efeito sonoro)
   Ato 2 → Countdown 3 segundos (suspense)
-  Ato 3 → Resposta + curiosidade extra (voz + imagem da resposta)
+  Ato 3 → Resposta direta + curiosidade
+  Ato 4 → CTA de inscrição com apelo aleatório (superstição / história / promessa)
 
 Temas: comportamento animal, biologia humana, natureza, física, história,
        astronomia, química, culinária, matemática, raciocínio lógico,
@@ -45,6 +46,11 @@ TEMAS = [
     ("teorias científicas curiosas",   1, ["science", "theory", "discovery"]),
     ("futebol e esporte",              1, ["football", "soccer", "stadium", "sport"]),
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tipos de CTA de inscrição com apelos brasileiros
+# ─────────────────────────────────────────────────────────────────────────────
+TIPOS_CTA = ["supersticao", "historia", "promessa"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tracking de perguntas usadas (evitar repetição)
@@ -136,6 +142,87 @@ def _escolher_tema(temas_tracking: dict) -> tuple[str, list[str]]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Geração do CTA de inscrição com apelo aleatório
+# ─────────────────────────────────────────────────────────────────────────────
+def gerar_cta_inscricao(client: Groq, tema: str, pergunta: str) -> str:
+    """
+    Gera um pedido de inscrição criativo e aleatório para brasileiros,
+    escolhendo aleatoriamente entre 3 tipos de apelo:
+
+    - supersticao: ameaça cômica/supersticiosa caso não siga
+    - historia: promessa de acompanhar uma jornada histórica do canal
+    - promessa: promessa de riqueza/sucesso ao seguir o canal
+
+    O CTA deve fazer referência ao tema/conteúdo do vídeo para soar orgânico.
+    Máximo de 2 frases curtas. Tom: irreverente, engraçado, brasileiro.
+    """
+    tipo = random.choice(TIPOS_CTA)
+
+    instrucoes = {
+        "supersticao": (
+            "Crie um pedido de inscrição usando SUPERSTIÇÃO cômica, como uma ameaça "
+            "engraçada e exagerada que vai acontecer se a pessoa NÃO seguir o canal. "
+            "Deve ser absurdo e engraçado. Exemplos de estilo: "
+            "'Se você não me seguir agora, vai acordar amanhã falando inglês com sotaque nordestino', "
+            "'Quem não me seguir vai pisar em Lego descalço todo dia por um mês', "
+            "'Se você fechar esse vídeo sem me seguir, vai aparecer um pombo na sua janela te julgando'. "
+            "Relacione com o tema do vídeo de forma criativa e cômica."
+        ),
+        "historia": (
+            "Crie um pedido de inscrição usando a ideia de ACOMPANHAR UMA JORNADA HISTÓRICA do canal, "
+            "como se atingir uma meta de inscritos fosse uma façanha histórica que a pessoa vai testemunhar. "
+            "Exemplos de estilo: "
+            "'Me segue pra ver se eu chego nos inscritos que nem a população de Portugal', "
+            "'Me segue pra ver se esse canal cresce mais rápido que o cabelo do Neymar', "
+            "'Segue o canal pra testemunhar se eu bato o recorde de Shorts mais assistido do Brasil'. "
+            "Relacione criativamente com o tema do vídeo."
+        ),
+        "promessa": (
+            "Crie um pedido de inscrição com uma PROMESSA exagerada e cômica de que seguir o canal "
+            "vai trazer riqueza, sucesso ou sorte. "
+            "Exemplos de estilo: "
+            "'Me segue pra ficar rico igual ao dono do Nubank', "
+            "'Segue o canal que quem segue não paga boleto atrasado', "
+            "'Me segue que seu chefe vai te dar aumento amanhã, garantido'. "
+            "Relacione com o tema do vídeo de forma criativa."
+        ),
+    }
+
+    instrucao = instrucoes[tipo]
+
+    prompt = f"""Você cria CTAs virais e engraçados para YouTube Shorts brasileiro.
+
+Tema do vídeo: {tema}
+Pergunta do vídeo: {pergunta}
+Tipo de apelo: {tipo}
+
+Instrução: {instrucao}
+
+REGRAS:
+- Máximo de 2 frases curtas e diretas (máx 30 palavras no total).
+- Tom irreverente, engraçado, coloquial brasileiro. Como um amigo falando.
+- DEVE incluir um pedido para "seguir" ou "se inscrever" no canal.
+- Relacione criativamente com o tema ou a pergunta do vídeo.
+- Sem hashtags. Sem markdown. Apenas o texto do CTA.
+- NÃO use aspas ao redor do texto.
+
+Responda APENAS com o texto do CTA, nada mais."""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=1.0,
+        max_tokens=100,
+    )
+
+    cta = response.choices[0].message.content.strip()
+    # Limpar possíveis aspas da IA
+    cta = cta.strip('"').strip("'").strip()
+    print(f"🎯 CTA gerado [{tipo}]: {cta}")
+    return cta
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Geração principal via Groq
 # ─────────────────────────────────────────────────────────────────────────────
 def gerar_quiz() -> dict:
@@ -145,7 +232,7 @@ def gerar_quiz() -> dict:
     Retorna dict com:
         pergunta_texto, resposta_texto, curiosidade_texto,
         termos_imagem_pergunta, termos_imagem_resposta,
-        tema, titulo, descricao, tags
+        tema, titulo, descricao, tags, cta_inscricao
     """
     client   = Groq(api_key=os.environ["GROQ_API_KEY"])
     tracking = _carregar_tracking()
@@ -159,7 +246,7 @@ Crie UMA pergunta curiosa e surpreendente sobre o tema: **{tema}**.
 FORMATO OBRIGATÓRIO — responda APENAS o JSON abaixo, sem texto adicional:
 
 {{
-  "pergunta_texto": "Texto da pergunta. FAÇA UMA PERGUNTA DIRETA E ABERTA, SEM USAR 'Você sabe' ou 'Você sabia que', para evitar respostas de 'sim' ou 'não'. Vá direto ao ponto. Exemplos por tema:\n- animal: 'Qual é o animal mais venenoso do mundo?'\n- astronomia: 'Qual planeta tem chuva de diamantes?'\n- culinária: 'Qual é o tempero mais caro do mundo?'\n- matemática: 'Qual número dividido por zero não tem resposta?'\n- raciocínio lógico: 'Que dia será daqui a 100 dias se hoje for quarta?'\n- geografia: 'Qual país tem mais idiomas oficiais do mundo?'\n- história: 'Qual civilização inventou o papel?'\n- filosofia: 'Quem disse que só sei que nada sei?'\n- física: 'Por que o céu é azul e não verde?'\n- fenômenos: 'Por que os relâmpagos caem em lugares altos?'\n- futebol: 'Qual jogador ganhou mais Copas do Mundo?'\nTermine com '...você tem 3 segundos para responder!'",
+  "pergunta_texto": "Texto da pergunta. FAÇA UMA PERGUNTA DIRETA E ABERTA, SEM USAR 'Você sabe' ou 'Você sabia que', para evitar respostas de 'sim' ou 'não'. Vá direto ao ponto. Exemplos por tema:\\n- animal: 'Qual é o animal mais venenoso do mundo?'\\n- astronomia: 'Qual planeta tem chuva de diamantes?'\\n- culinária: 'Qual é o tempero mais caro do mundo?'\\n- matemática: 'Qual número dividido por zero não tem resposta?'\\n- raciocínio lógico: 'Que dia será daqui a 100 dias se hoje for quarta?'\\n- geografia: 'Qual país tem mais idiomas oficiais do mundo?'\\n- história: 'Qual civilização inventou o papel?'\\n- filosofia: 'Quem disse que só sei que nada sei?'\\n- física: 'Por que o céu é azul e não verde?'\\n- fenômenos: 'Por que os relâmpagos caem em lugares altos?'\\n- futebol: 'Qual jogador ganhou mais Copas do Mundo?'\\nTermine com '...você tem 3 segundos para responder!'",
   "resposta_texto": "Resposta direta e clara, 1 frase curta e impactante.",
   "curiosidade_texto": "Uma curiosidade extra relacionada, 2-3 frases que aprofundam a resposta. Tom acessível e envolvente.",
   "termos_imagem_pergunta": ["termo1_ingles", "termo2_ingles"],
@@ -217,6 +304,14 @@ REGRAS:
     dados.setdefault("termos_imagem_resposta", termos_base[:2])
     dados["tema"] = tema
 
+    # Gerar CTA de inscrição aleatório e criativo
+    print("🎯 Gerando CTA de inscrição com apelo aleatório...")
+    dados["cta_inscricao"] = gerar_cta_inscricao(
+        client,
+        tema=tema,
+        pergunta=dados["pergunta_texto"],
+    )
+
     # Registrar como usada e atualizar tema do dia
     _marcar_usada(dados["pergunta_texto"], tracking)
     _salvar_tracking(tracking)
@@ -232,6 +327,7 @@ REGRAS:
     print(f"✅ Quiz gerado — tema: {tema}")
     print(f"   Pergunta  : {dados['pergunta_texto'][:70]}...")
     print(f"   Resposta  : {dados['resposta_texto'][:70]}")
+    print(f"   CTA       : {dados['cta_inscricao'][:70]}")
     print(f"   Palavras  : pergunta={palavras_p} / resposta={palavras_r}")
 
     return dados
@@ -255,3 +351,4 @@ if __name__ == "__main__":
 
     print(f"\n✅ Quiz salvo em output/quiz.json")
     print(f"   Título: {resultado.get('titulo', '?')}")
+    print(f"   CTA   : {resultado.get('cta_inscricao', '?')}")
