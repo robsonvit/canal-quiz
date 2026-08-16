@@ -29,6 +29,7 @@ env:
   YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
   YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
   YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+  FISH_API_KEY:          ${{ secrets.FISH_API_KEY }}
 
 jobs:
   gerar-quiz-short:
@@ -77,8 +78,8 @@ jobs:
           import json,sys
           data=json.load(sys.stdin)
           print(f'Tema      : {data.get(\"tema\", \"?\")}')
-          print(f'Pergunta  : {data.get(\"pergunta_texto\", \"?\")[:80]}...')
-          print(f'Resposta  : {data.get(\"resposta_texto\", \"?\")}')
+          print(f'Pergunta  : {data.get(\"pergunta\", \"?\")[:80]}...')
+          print(f'Resposta  : {data.get(\"resposta\", \"?\")}')
           print(f'Título    : {data.get(\"titulo\", \"?\")}')
           " || echo "(quiz.json não encontrado)"
 

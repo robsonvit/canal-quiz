@@ -56,19 +56,19 @@ def main():
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
     print(f"\n📋 Resumo do quiz:")
-    print(f"   Tema      : {dados.get('tema', '?')}")
-    print(f"   Pergunta  : {dados['pergunta_texto'][:70]}...")
-    print(f"   Resposta  : {dados['resposta_texto']}")
-    print(f"   CTA       : {dados.get('cta_inscricao', '?')}")
+    print(f"✅ Quiz gerado — tema: {dados.get('tema', '?')}")
+    print(f"   Pergunta  : {dados['pergunta'][:70]}...")
+    print(f"   Correta   : {dados.get('letra_correta', '?')}")
+    print(f"   CTA       : {dados.get('cta', '?')}")
     print(f"   Título    : {dados.get('titulo', '?')}")
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 2 — Gerar áudio TTS + legendas SRT
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(2, 5, "Gerando áudios TTS (gancho + resposta + CTA) + legendas Groq Whisper...")
+    _titulo(2, 5, "Gerando áudios TTS detalhados (gancho, pergunta, opções, explicação, CTA)...")
     from scripts.gerar_audio import gerar as gerar_audio
 
-    audio_pergunta, audio_cta, audio_resposta, srt_path = gerar_audio(dados, OUTPUT_DIR)
+    audios = gerar_audio(dados, OUTPUT_DIR)
 
     # ──────────────────────────────────────────────────────────────────────────
     # PASSO 3 — Buscar vídeo da resposta no Pexels
@@ -84,20 +84,15 @@ def main():
     print(f"✅ Vídeos de resposta concatenados: {video_resposta}")
 
     # ──────────────────────────────────────────────────────────────────────────
-    # PASSO 4 — Montar Short 1080×1920 com 4 atos
+    # PASSO 4 — Montar Short 1080×1920
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(4, 5, "Montando Short 1080×1920 (Gancho+SFX → Countdown 3s → Resposta → CTA)...")
+    _titulo(4, 5, "Montando Short 1080×1920 (Show do Milhão com Pexels)...")
     from scripts.montar_video import montar_video
 
     video_final = montar_video(
-        video_resposta = video_resposta,
-        audio_pergunta = audio_pergunta,
-        audio_cta      = audio_cta,
-        audio_resposta = audio_resposta,
-        legendas_srt   = srt_path,
-        output_dir     = OUTPUT_DIR,
-        resposta_curta = dados.get("resposta_texto", "")[:60],
-        countdown_s    = 3.0,
+        audios=audios,
+        video_pexels=video_resposta,
+        output_dir=OUTPUT_DIR,
     )
 
     # ──────────────────────────────────────────────────────────────────────────
