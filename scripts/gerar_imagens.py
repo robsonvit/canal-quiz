@@ -133,7 +133,8 @@ def criar_tela_quiz(dados_quiz, output_dir="output", stage="normal"):
             alt_clean = alt_clean.split('.', 1)[1].strip()
             
         tx = cx1 + 30
-        ty = y0 + (alt_height - font_alt.size) // 2 - 5
+        font_size = getattr(font_alt, "size", 48)
+        ty = y0 + (alt_height - font_size) // 2 - 5
         draw_text_with_shadow(draw, tx, ty, alt_clean, font_alt, shadow_offset=(2,2))
 
     os.makedirs(output_dir, exist_ok=True)
