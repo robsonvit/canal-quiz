@@ -159,6 +159,19 @@ def upload_youtube(
     print(f"\n✅ Short publicado! ID: {video_id}")
     print(f"   📱 https://www.youtube.com/shorts/{video_id}")
 
+    # ── Thumbnail ─────────────────────────────────────────────────────────────
+    thumbnail_path = os.path.join(os.path.dirname(video_path), "frame_normal.png")
+    if os.path.exists(thumbnail_path):
+        print("🖼️ Fazendo upload da thumbnail (frame da pergunta com alternativas)...")
+        try:
+            youtube.thumbnails().set(
+                videoId=video_id,
+                media_body=MediaFileUpload(thumbnail_path)
+            ).execute()
+            print("✅ Thumbnail customizada definida com sucesso!")
+        except Exception as e:
+            print(f"⚠️ Aviso: Não foi possível definir a thumbnail: {e}")
+
     return video_id
 
 
