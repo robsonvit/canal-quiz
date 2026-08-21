@@ -2,7 +2,7 @@
 gerar_audio.py
 ──────────────
 Gera áudio MP3 com voz do Silvio Santos via Fish Audio API
-para o Short de Quiz e produz arquivo SRT de legendas via Groq Whisper.
+para o Short de Quiz e produz arquivo SRT de legendas com gerador proporcional.
 
 O áudio é gerado em 3 partes separadas (pergunta, CTA, resposta).
 As legendas SRT são geradas para cada parte e concatenadas
@@ -12,7 +12,6 @@ com offset de tempo correto para sincronizar com o vídeo final.
 import os
 import json
 import requests
-from groq import Groq
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Configurações da voz
@@ -69,52 +68,29 @@ def _sintetizar(texto: str, output_file: str):
     else:
         raise RuntimeError(f"Erro na API Fish Audio: {response.status_code} - {response.text}")
 
-def _transcrever_para_srt(audio_path: str, offset_segundos: float = 0.0) -> list[str]:
-    """Transcreve com Groq Whisper e retorna linhas SRT."""
-    cliente_groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    try:
-        with open(audio_path, "rb") as f:
-            transcricao = cliente_groq.audio.transcriptions.create(
-                file=("audio.mp3", f.read()),
-                model="whisper-large-v3-turbo",
-                response_format="verbose_json",
-                language="pt",
-            )
-
-        segmentos = transcricao.get("segments", []) if isinstance(transcricao, dict) else transcricao.segments
-        linhas_srt = []
-        idx = 1
-
-        for segment in segmentos:
-            try:
-                start = segment.start + offset_segundos
-                end   = segment.end   + offset_segundos
-                text  = segment.text
-            except AttributeError:
-                start = segment["start"] + offset_segundos
-                end   = segment["end"]   + offset_segundos
-                text  = segment["text"]
-
-            palavras = text.strip().split()
-            if not palavras: continue
-
-            duracao_total    = (end - start)
-            tempo_por_palavra = duracao_total / max(len(palavras), 1)
-
-            for i in range(0, len(palavras), PALAVRAS_POR_LEGENDA):
-                chunk       = palavras[i: i + PALAVRAS_POR_LEGENDA]
-                chunk_text  = " ".join(chunk)
-                chunk_start = start + (i * tempo_por_palavra)
-                chunk_end   = start + ((i + len(chunk)) * tempo_por_palavra)
-
-                inicio = _segundos_para_hms(chunk_start)
-                fim    = _segundos_para_hms(chunk_end)
-                linhas_srt.append(f"{idx}\n{inicio} --> {fim}\n{chunk_text}\n")
-                idx += 1
-        return linhas_srt
-    except Exception as e:
-        print(f"⚠️ Groq Whisper falhou: {e} — usando fallback")
-        return [f"1\n{_segundos_para_hms(offset_segundos)} --> {_segundos_para_hms(offset_segundos + 5.0)}\n \n"]
+def _gerar_srt_proporcional(texto: str, audio_path: str, offset_segundos: float = 0.0) -> list[str]:
+    """Gera linhas SRT dividindo o texto matematicamente pelo tempo do áudio, sem depender de API externa."""
+    duracao_total = _duracao_audio(audio_path)
+    palavras = texto.strip().split()
+    if not palavras:
+        return [f"1\\n{_segundos_para_hms(offset_segundos)} --> {_segundos_para_hms(offset_segundos + duracao_total)}\\n \\n"]
+        
+    linhas_srt = []
+    idx = 1
+    tempo_por_palavra = duracao_total / max(len(palavras), 1)
+    
+    for i in range(0, len(palavras), PALAVRAS_POR_LEGENDA):
+        chunk = palavras[i: i + PALAVRAS_POR_LEGENDA]
+        chunk_text = " ".join(chunk)
+        chunk_start = offset_segundos + (i * tempo_por_palavra)
+        chunk_end = offset_segundos + ((i + len(chunk)) * tempo_por_palavra)
+        
+        inicio = _segundos_para_hms(chunk_start)
+        fim = _segundos_para_hms(chunk_end)
+        linhas_srt.append(f"{idx}\\n{inicio} --> {fim}\\n{chunk_text}\\n")
+        idx += 1
+        
+    return linhas_srt
 
 def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, str, str]:
     os.makedirs(output_dir, exist_ok=True)
@@ -179,8 +155,8 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, 
     offset += dur_countdown
     offset += dur_rev_curta
     
-    print("📝 Transcrevendo GANCHO (Legenda no meio da tela)...")
-    linhas_gancho = _transcrever_para_srt(audio_gancho, offset_segundos=d_noti)
+    print("📝 Gerando legendas GANCHO (Legenda no meio da tela)...")
+    linhas_gancho = _gerar_srt_proporcional(texto_gancho, audio_gancho, offset_segundos=d_noti)
     
     srt_gancho_path = os.path.join(output_dir, "legendas_gancho.srt")
     
@@ -200,11 +176,11 @@ def gerar(dados_quiz: dict, output_dir: str = "output") -> tuple[str, str, str, 
     offset_explicacao = offset
     offset_cta = offset_explicacao + dur_explicacao
 
-    print("📝 Transcrevendo EXPLICAÇÃO (Com legenda)...")
-    linhas_explicacao = _transcrever_para_srt(audio_explicacao, offset_segundos=offset_explicacao)
+    print("📝 Gerando legendas EXPLICAÇÃO (Com legenda)...")
+    linhas_explicacao = _gerar_srt_proporcional(texto_explicacao, audio_explicacao, offset_segundos=offset_explicacao)
 
-    print("📝 Transcrevendo CTA (Com legenda)...")
-    linhas_cta = _transcrever_para_srt(audio_cta, offset_segundos=offset_cta)
+    print("📝 Gerando legendas CTA (Com legenda)...")
+    linhas_cta = _gerar_srt_proporcional(texto_cta, audio_cta, offset_segundos=offset_cta)
 
     # Renumerar blocos SRT base
     todas_linhas = [linhas_explicacao, linhas_cta]

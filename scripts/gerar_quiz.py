@@ -10,7 +10,7 @@ import json
 import random
 import hashlib
 from datetime import datetime, timezone, timedelta
-from groq import Groq
+from openai import OpenAI
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Banco de temas
@@ -119,7 +119,14 @@ O canal possui uma identidade inspirada na nostalgia dos grandes programas de pe
 """
 
 def gerar_quiz() -> dict:
-    client   = Groq(api_key=os.environ["GROQ_API_KEY"])
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        default_headers={
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Canal Quiz"
+        }
+    )
     tracking = _carregar_tracking()
     temas_tracking = _carregar_temas_tracking()
 
@@ -152,8 +159,11 @@ A estrutura do JSON deve ser exatamente esta:
 LEMBRE-SE: Retorne APENAS o JSON."""
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
+        model="google/gemini-2.5-flash",
+        messages=[
+            {"role": "system", "content": "Você é um assistente prestativo e um roteirista criativo."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.9,
         max_tokens=800,
     )

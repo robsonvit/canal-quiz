@@ -4,7 +4,7 @@ pipeline.py
 Orquestrador principal do Canal Quiz Shorts.
 Executa todos os passos em sequência:
 
-  1. Gerar pergunta curiosa + resposta + CTA de inscrição via Groq AI
+  1. Gerar pergunta curiosa + resposta + CTA de inscrição via OpenRouter AI
   2. Gerar áudio TTS (gancho + resposta + CTA) e legendas SRT
   3. Buscar vídeos relacionados (resposta) via Pexels
   4. Montar Short 1080×1920 com 4 atos (gancho+SFX → countdown 3s → resposta → CTA)
@@ -44,9 +44,9 @@ def main():
     print("═"*60)
 
     # ──────────────────────────────────────────────────────────────────────────
-    # PASSO 1 — Gerar pergunta + resposta + CTA com Groq AI
+    # PASSO 1 — Gerar pergunta + resposta + CTA com OpenRouter AI
     # ──────────────────────────────────────────────────────────────────────────
-    _titulo(1, 5, "Gerando quiz + CTA com Groq AI (llama-3.3-70b)...")
+    _titulo(1, 5, "Gerando quiz + CTA com OpenRouter AI (gemini-2.5-flash)...")
     from scripts.gerar_quiz import gerar_quiz
 
     dados = gerar_quiz()

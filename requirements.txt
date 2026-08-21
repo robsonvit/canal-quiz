@@ -1,7 +1,7 @@
 # Dependências Python — Canal Quiz Shorts
 
 # IA — geração de texto e transcrição de áudio
-groq>=0.9.0
+openai>=1.0.0
 
 # TTS — síntese de voz (Fish Audio API)
 # requests já está nas dependências abaixo
