@@ -73,7 +73,7 @@ def _gerar_srt_proporcional(texto: str, audio_path: str, offset_segundos: float 
     duracao_total = _duracao_audio(audio_path)
     palavras = texto.strip().split()
     if not palavras:
-        return [f"1\\n{_segundos_para_hms(offset_segundos)} --> {_segundos_para_hms(offset_segundos + duracao_total)}\\n \\n"]
+        return [f"1\n{_segundos_para_hms(offset_segundos)} --> {_segundos_para_hms(offset_segundos + duracao_total)}\n \n"]
         
     linhas_srt = []
     idx = 1
@@ -87,7 +87,7 @@ def _gerar_srt_proporcional(texto: str, audio_path: str, offset_segundos: float 
         
         inicio = _segundos_para_hms(chunk_start)
         fim = _segundos_para_hms(chunk_end)
-        linhas_srt.append(f"{idx}\\n{inicio} --> {fim}\\n{chunk_text}\\n")
+        linhas_srt.append(f"{idx}\n{inicio} --> {fim}\n{chunk_text}\n")
         idx += 1
         
     return linhas_srt
