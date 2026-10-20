@@ -13,6 +13,7 @@ if sys.stdout and hasattr(sys.stdout, 'encoding') and sys.stdout.encoding != 'ut
     except Exception:
         pass
 import json
+import re
 import random
 import hashlib
 from datetime import datetime, timezone, timedelta
@@ -123,6 +124,7 @@ O canal possui uma identidade inspirada na nostalgia dos grandes programas de pe
 5. Indique a resposta correta num campo "letra_correta" (1, 2, 3 ou 4).
 6. A revelação e explicação devem ser diretas e curtas.
 7. Termine com um CTA que estimule os comentários.
+8. REGRA DE HASHTAGS: Todas as hashtags (#) na descrição ou no título DEVEM estar OBRIGATORIAMENTE em LETRAS MINÚSCULAS (exemplo: #shorts #quiz #curiosidades #showdomilhao #ciencia). NUNCA utilize letras maiúsculas em nenhuma hashtag.
 """
 
 def obter_modelos_gratuitos(api_key: str | None = None) -> list[str]:
@@ -242,8 +244,8 @@ A estrutura do JSON deve ser exatamente esta:
   "explicacao": "[EXPLICAÇÃO CURTA E REVELAÇÃO DA RESPOSTA]",
   "cta": "[O CTA PARA O VÍDEO]",
   "titulo": "[TÍTULO DO SHORT, max 80 chars, em caixa alta, não revele a resposta]",
-  "descricao": "[DESCRIÇÃO COMEÇANDO COM A PERGUNTA. USE HASHTAGS. max 400 chars]",
-  "tags": ["Shorts", "Quiz", "Curiosidades", "{tema}"]
+  "descricao": "[DESCRIÇÃO COMEÇANDO COM A PERGUNTA. USE HASHTAGS OBRIGATORIAMENTE EM LETRAS MINÚSCULAS COMO #shorts #quiz #curiosidades. max 400 chars]",
+  "tags": ["shorts", "quiz", "curiosidades", "{tema}"]
 }}
 
 LEMBRE-SE: Retorne APENAS o JSON."""
@@ -303,6 +305,24 @@ LEMBRE-SE: Retorne APENAS o JSON."""
                     num_correta = v
                     break
             dados_tentativa["letra_correta"] = num_correta
+
+            # Normalização de hashtags para letras minúsculas (ex: #shorts #quiz)
+            if "descricao" in dados_tentativa and isinstance(dados_tentativa["descricao"], str):
+                dados_tentativa["descricao"] = re.sub(
+                    r'#([A-Za-z0-9_À-ÿ]+)',
+                    lambda m: '#' + m.group(1).lower(),
+                    dados_tentativa["descricao"]
+                )
+
+            if "titulo" in dados_tentativa and isinstance(dados_tentativa["titulo"], str):
+                dados_tentativa["titulo"] = re.sub(
+                    r'#([A-Za-z0-9_À-ÿ]+)',
+                    lambda m: '#' + m.group(1).lower(),
+                    dados_tentativa["titulo"]
+                )
+
+            if "tags" in dados_tentativa and isinstance(dados_tentativa["tags"], list):
+                dados_tentativa["tags"] = [str(t).lower() for t in dados_tentativa["tags"]]
 
             dados = dados_tentativa
             print(f"✨ Sucesso com o modelo: {modelo}")

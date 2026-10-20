@@ -5,9 +5,9 @@ Faz upload do Short de Quiz para o YouTube via YouTube Data API v3
 usando credenciais OAuth 2.0 (refresh token).
 
   ✅ Publicação IMEDIATA (Shorts têm melhor alcance imediato)
-  ✅ Título formatado para Short com emoji e #Shorts
+  ✅ Título formatado para Short com emoji e #shorts
   ✅ Descrição curta (≤ 500 chars)
-  ✅ Tags incluem #Shorts, #Quiz, #Curiosidades
+  ✅ Tags incluem #shorts, #quiz, #curiosidades
   ✅ categoryId=27 (Education) — melhor para quiz/curiosidades
   ✅ Sem thumbnail customizada (Shorts usam frame automático)
   ✅ containsSyntheticMedia=True (declara uso de IA/TTS)
@@ -78,7 +78,7 @@ def upload_youtube(
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
 
     # ── Metadados ─────────────────────────────────────────────────────────────
-    titulo    = metadata.get("titulo", "🧠 Quiz Rápido #Shorts")[:100]
+    titulo    = metadata.get("titulo", "🧠 Quiz Rápido #shorts")[:100]
     pergunta  = metadata.get("pergunta_texto", "")
     resposta  = metadata.get("resposta_texto", "")
     descricao_raw = metadata.get("descricao", "")
@@ -89,22 +89,26 @@ def upload_youtube(
 
     # 1. Garante o Título do Vídeo
     if pergunta_seo and pergunta_seo.lower() not in titulo.lower():
-        titulo = f"🧠 {pergunta_seo} #Shorts"[:100]
+        titulo = f"🧠 {pergunta_seo} #shorts"[:100]
 
     # 2. Garante a Descrição
     if pergunta_seo and not descricao_raw.startswith(pergunta_seo[:30]):
         # A IA não colocou a pergunta no início — constrói manualmente com tags genéricas
-        descricao = f"{pergunta_seo}\n\n✅ Resposta: {resposta}\n\n#Shorts #Quiz #Curiosidades"
+        descricao = f"{pergunta_seo}\n\n✅ Resposta: {resposta}\n\n#shorts #quiz #curiosidades"
     else:
         descricao = descricao_raw
+
+    # Garante que qualquer hashtag no título e na descrição esteja 100% em letras minúsculas
+    descricao = re.sub(r'#([A-Za-z0-9_À-ÿ]+)', lambda m: '#' + m.group(1).lower(), descricao)
+    titulo = re.sub(r'#([A-Za-z0-9_À-ÿ]+)', lambda m: '#' + m.group(1).lower(), titulo)
 
     descricao = descricao[:500]
     tags      = metadata.get("tags", [])
 
-    # Garante tags essenciais para o algoritmo
-    tags_essenciais = ["Shorts", "Quiz", "Curiosidades", "Você Sabia"]
+    # Garante tags essenciais para o algoritmo (em minúsculas)
+    tags_essenciais = ["shorts", "quiz", "curiosidades", "você sabia"]
     for tag in tags_essenciais:
-        if tag not in tags:
+        if tag not in [str(t).lower() for t in tags]:
             tags = [tag] + tags
 
     # ── Renomear arquivo ──────────────────────────────────────────────────────
