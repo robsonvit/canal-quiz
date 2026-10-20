@@ -30,6 +30,7 @@ env:
   YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
   YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
   FISH_API_KEY:          ${{ secrets.FISH_API_KEY }}
+  OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
 
 jobs:
   gerar-quiz-short:

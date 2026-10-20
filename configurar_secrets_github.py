@@ -21,6 +21,7 @@ load_dotenv()
 REPO = "canal-quiz"  # Nome do repositório no GitHub
 
 SECRETS = {
+    "OPENROUTER_API_KEY":    os.environ.get("OPENROUTER_API_KEY", ""),
     "GROQ_API_KEY":          os.environ.get("GROQ_API_KEY", ""),
     "PEXELS_API_KEY":        os.environ.get("PEXELS_API_KEY", ""),
     "YOUTUBE_CLIENT_ID":     os.environ.get("YOUTUBE_CLIENT_ID", ""),

@@ -18,6 +18,9 @@ import os
 import sys
 import json
 import traceback
+
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 from dotenv import load_dotenv
 
 load_dotenv()

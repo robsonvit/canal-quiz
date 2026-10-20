@@ -6,10 +6,17 @@ para YouTube Shorts. O novo prompt garante competição, suspense e retenção.
 """
 
 import os
+import sys
+if sys.stdout and hasattr(sys.stdout, 'encoding') and sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 import json
 import random
 import hashlib
 from datetime import datetime, timezone, timedelta
+import requests
 from openai import OpenAI
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -118,10 +125,93 @@ O canal possui uma identidade inspirada na nostalgia dos grandes programas de pe
 7. Termine com um CTA que estimule os comentários.
 """
 
+def obter_modelos_gratuitos(api_key: str | None = None) -> list[str]:
+    """
+    Consulta dinamicamente a API da OpenRouter para obter a lista atualizada
+    de modelos gratuitos disponíveis (pricing=0 ou sufixo ':free'),
+    filtrando apenas modelos de texto/chat e priorizando os melhores.
+    """
+    modelos_fallback = [
+        "openrouter/free",
+        "google/gemma-4-31b-it:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "liquid/lfm-2.5-2.6b:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+    ]
+
+    headers = {
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "Canal Quiz"
+    }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        resp = requests.get("https://openrouter.ai/api/v1/models", headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+
+        gratuitos = []
+        for m in data:
+            mid = m.get("id", "")
+            pricing = m.get("pricing", {})
+            is_free = mid.endswith(":free") or (
+                str(pricing.get("prompt", "")).strip() in ("0", "0.0") and
+                str(pricing.get("completion", "")).strip() in ("0", "0.0")
+            )
+            if not is_free:
+                continue
+
+            # Ignorar modelos de moderação, segurança ou embedding
+            mid_lower = mid.lower()
+            if any(ign in mid_lower for ign in ["safety", "guard", "moderation", "embed"]):
+                continue
+
+            # Verificar se gera texto
+            arch = m.get("architecture", {})
+            out_mod = arch.get("output_modalities", ["text"])
+            if "text" not in out_mod:
+                continue
+
+            gratuitos.append(mid)
+
+        # Priorização dos melhores modelos para JSON e língua portuguesa
+        def prioridade(m_id: str) -> int:
+            m_l = m_id.lower()
+            if m_id == "openrouter/free": return 0
+            if "gemini" in m_l: return 1
+            if "gemma" in m_l: return 2
+            if "llama" in m_l: return 3
+            if "qwen" in m_l: return 4
+            if "nemotron" in m_l: return 5
+            if "minimax" in m_l: return 6
+            return 10
+
+        gratuitos.sort(key=prioridade)
+
+        if "openrouter/free" not in gratuitos:
+            gratuitos.insert(0, "openrouter/free")
+
+        if gratuitos:
+            print(f"🌐 OpenRouter: {len(gratuitos)} modelos gratuitos encontrados em tempo real.")
+            return gratuitos
+
+    except Exception as e:
+        print(f"⚠️ Erro ao consultar modelos em tempo real na OpenRouter: {e}. Usando lista de fallback.")
+
+    return modelos_fallback
+
+
 def gerar_quiz() -> dict:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ValueError("OPENROUTER_API_KEY não foi encontrada nas variáveis de ambiente.")
+
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        api_key=api_key,
         default_headers={
             "HTTP-Referer": "http://localhost:3000",
             "X-Title": "Canal Quiz"
@@ -158,32 +248,77 @@ A estrutura do JSON deve ser exatamente esta:
 
 LEMBRE-SE: Retorne APENAS o JSON."""
 
-    response = client.chat.completions.create(
-        model="google/gemini-2.5-flash",
-        messages=[
-            {"role": "system", "content": "Você é um assistente prestativo e um roteirista criativo."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.9,
-        max_tokens=800,
-    )
+    modelos_gratuitos = obter_modelos_gratuitos(api_key)
+    dados = None
+    erros = []
 
-    content = response.choices[0].message.content.strip()
+    for idx, modelo in enumerate(modelos_gratuitos, start=1):
+        print(f"🤖 [{idx}/{len(modelos_gratuitos)}] Testando modelo gratuito: {modelo}...")
+        try:
+            response = client.chat.completions.create(
+                model=modelo,
+                messages=[
+                    {"role": "system", "content": "Você é um assistente prestativo e um roteirista criativo. Retorne apenas JSON válido sem texto adicional."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=800,
+            )
 
-    if "```json" in content:
-        content = content.split("```json")[1].split("```")[0].strip()
-    elif "```" in content:
-        content = content.split("```")[1].split("```")[0].strip()
+            if not response.choices or not response.choices[0].message:
+                raise ValueError("Resposta sem escolhas/mensagem")
 
-    start = content.find("{")
-    end   = content.rfind("}") + 1
-    if start != -1 and end > start:
-        content = content[start:end]
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("Conteúdo da mensagem vazio ou nulo")
 
-    try:
-        dados = json.loads(content)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Groq não retornou JSON válido: {e}\\nResposta: {content[:300]}")
+            content = content.strip()
+
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+
+            start = content.find("{")
+            end   = content.rfind("}") + 1
+            if start != -1 and end > start:
+                content = content[start:end]
+
+            dados_tentativa = json.loads(content)
+
+            # Validações dos campos obrigatórios
+            if not dados_tentativa.get("pergunta"):
+                raise ValueError("Campo 'pergunta' ausente")
+            if not isinstance(dados_tentativa.get("alternativas"), list) or len(dados_tentativa["alternativas"]) != 4:
+                raise ValueError("Campo 'alternativas' inválido (deve ser lista com 4 opções)")
+            if "letra_correta" not in dados_tentativa:
+                raise ValueError("Campo 'letra_correta' ausente")
+
+            # Normalização de letra_correta para inteiro (1, 2, 3 ou 4)
+            raw_lc = str(dados_tentativa.get("letra_correta", "1")).strip().upper()
+            mapa_letras = {"A": 1, "B": 2, "C": 3, "D": 4, "1": 1, "2": 2, "3": 3, "4": 4}
+            num_correta = 1
+            for k, v in mapa_letras.items():
+                if k in raw_lc:
+                    num_correta = v
+                    break
+            dados_tentativa["letra_correta"] = num_correta
+
+            dados = dados_tentativa
+            print(f"✨ Sucesso com o modelo: {modelo}")
+            break
+
+        except Exception as e:
+            msg_erro = str(e)
+            erros.append(f"{modelo}: {msg_erro}")
+            print(f"⚠️  Falha no modelo {modelo}: {msg_erro[:150]}")
+            continue
+
+    if not dados:
+        raise RuntimeError(
+            f"Nenhum modelo gratuito da OpenRouter conseguiu gerar o quiz com sucesso.\n"
+            f"Tentativas ({len(erros)}):\n" + "\n".join(erros[:5])
+        )
 
     if _ja_foi_usada(dados.get("pergunta", ""), tracking):
         print("⚠️  Pergunta recente detectada, gerando nova tentativa...")
@@ -204,7 +339,7 @@ LEMBRE-SE: Retorne APENAS o JSON."""
 
     print(f"✅ Quiz gerado — tema: {tema}")
     print(f"   Pergunta  : {dados['pergunta'][:70]}...")
-    print(f"   CTA       : {dados['cta'][:70]}")
+    print(f"   CTA       : {dados.get('cta', '')[:70]}")
 
     return dados
 
