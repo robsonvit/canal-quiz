@@ -1,4 +1,5 @@
 import os
+import re
 import textwrap
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -127,10 +128,8 @@ def criar_tela_quiz(dados_quiz, output_dir="output", stage="normal"):
         draw.text((nx, ny), numero_texto, font=font_num, fill="#22359C")
         
         alt_clean = alt_text
-        if len(alt_clean) > 3 and alt_clean[1] == ')' or alt_clean[2] == ')':
-            alt_clean = alt_clean.split(')', 1)[1].strip()
-        elif len(alt_clean) > 3 and alt_clean[1] == '.' or alt_clean[2] == '.':
-            alt_clean = alt_clean.split('.', 1)[1].strip()
+        # Remove prefixos como "A)", "1)", "A.", "1.", "1 - ", etc., de forma segura
+        alt_clean = re.sub(r'^[A-Da-d0-9]\s*[\.\)\-\:]\s*', '', alt_clean).strip()
             
         tx = cx1 + 30
         font_size = getattr(font_alt, "size", 48)
